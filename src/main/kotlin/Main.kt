@@ -45,9 +45,20 @@ fun main(args: Array<String>) {
     println("Total Manga Identified: ${entries.size}")
     println()
 
-    println("Sources:")
+println("Sources:")
     entries.groupBy { it.sourceKey }.forEach { (source, list) ->
         println("  $source: ${list.size}")
+    }
+
+    println()
+    println("Manga Storm Categories:")
+
+    val categoryCounts = entries.groupBy {
+        BackupBuilder.mangaStormStatusLabel(it.status)
+    }
+
+    listOf("Reading", "Following", "On Hold").forEach { category ->
+        println("  $category: ${categoryCounts[category]?.size ?: 0}")
     }
 
     writeDuplicateReport(entries)

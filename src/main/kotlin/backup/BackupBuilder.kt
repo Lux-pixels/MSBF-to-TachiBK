@@ -5,12 +5,14 @@ import models.*
 import parser.MsbfEntry
 
 object BackupBuilder {
+    private const val READING_CATEGORY_ID = 1L
+    private const val FOLLOWING_CATEGORY_ID = 2L
+    private const val ON_HOLD_CATEGORY_ID = 3L
+
     fun build(
         entries: List<MsbfEntry>,
         metadata: Map<String, MangaDexMetadata>,
     ): Backup {
-        val categoryId = 0L
-
         val manga = entries.map { entry ->
             val uuid = extractMangaDexUuid(entry.url)
             val meta = metadata[uuid]
@@ -27,7 +29,7 @@ object BackupBuilder {
                 thumbnailUrl = meta?.coverUrl,
                 dateAdded = System.currentTimeMillis(),
                 favorite = true,
-                categories = listOf(categoryId),
+                categories = categoryIdsForMangaStormStatus(entry.status),
                 initialized = false
             )
         }
@@ -44,13 +46,7 @@ object BackupBuilder {
 
         return Backup(
             backupManga = manga,
-            backupCategories = listOf(
-                BackupCategory(
-                    name = "Manga Storm",
-                    order = 0,
-                    id = categoryId
-                )
-            ),
+            backupCategories = mangaStormCategories(),
             backupSources = sources
         )
     }
@@ -61,6 +57,44 @@ object BackupBuilder {
             ?: error("Invalid MangaDex URL: $url")
 
         return match.groupValues[1]
+    }
+
+    fun mangaStormStatusLabel(status: String?): String {
+        return when (status?.trim()?.uppercase()) {
+            "R" -> "Reading"
+            "Y" -> "Following"
+            "A" -> "On Hold"
+            else -> "Uncategorized"
+        }
+    }
+
+    private fun categoryIdsForMangaStormStatus(status: String?): List<Long> {
+        return when (status?.trim()?.uppercase()) {
+            "R" -> listOf(READING_CATEGORY_ID)
+            "Y" -> listOf(FOLLOWING_CATEGORY_ID)
+            "A" -> listOf(ON_HOLD_CATEGORY_ID)
+            else -> emptyList()
+        }
+    }
+
+    private fun mangaStormCategories(): List<BackupCategory> {
+        return listOf(
+            BackupCategory(
+                name = "Reading",
+                order = 0,
+                id = READING_CATEGORY_ID
+            ),
+            BackupCategory(
+                name = "Following",
+                order = 1,
+                id = FOLLOWING_CATEGORY_ID
+            ),
+            BackupCategory(
+                name = "On Hold",
+                order = 2,
+                id = ON_HOLD_CATEGORY_ID
+            ),
+        )
     }
 
     private fun normalizeMangaDexUrl(url: String): String {
