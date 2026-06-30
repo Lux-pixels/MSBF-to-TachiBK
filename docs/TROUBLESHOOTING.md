@@ -30,6 +30,32 @@ In GitHub Codespaces, you may need to switch to Java 17 before building.
 
 ---
 
+## Help Command
+
+To show CLI help:
+
+```bash
+./gradlew run --args="--help"
+```
+
+---
+
+## Version Command
+
+To show the current converter version:
+
+```bash
+./gradlew run --args="--version"
+```
+
+Expected during Commit 8:
+
+```text
+MSBF-to-TachiBK 0.6.0
+```
+
+---
+
 ## Backup File Not Found in Komikku
 
 If Komikku cannot open the `.tachibk` file, especially in BlueStacks:
@@ -45,15 +71,17 @@ If Komikku cannot open the `.tachibk` file, especially in BlueStacks:
 If restored MangaDex entries open a website/WebView 404 page:
 
 1. Make sure the MangaDex extension is installed.
-2. Restore **App Settings** from the generated backup.
-3. Confirm delegated sources are disabled.
+2. Do **not** restore App Settings.
+3. Manually disable delegated sources in Komikku.
 4. Reopen Komikku and test the manga again.
 
-The converter includes this setting in the backup:
+Look for:
 
 ```text
-enable_delegated_sources = false
+Komikku settings → Advanced / Developer tools → Enable delegated sources
 ```
+
+Make sure delegated sources are disabled.
 
 ---
 
@@ -64,7 +92,7 @@ Metadata is fetched by default.
 Run without `--no-metadata`:
 
 ```bash
-./gradlew run --args="samples/testfavorites.msbf testdata/v0.4/MSBF-to-TachiBK-v0.4test.tachibk"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/MSBF-to-TachiBK-v0.6test.tachibk"
 ```
 
 Do not use this unless doing a quick test:
@@ -85,12 +113,30 @@ Recommended restore options:
 Check:
 Manga
 Categories
-App Settings
 
 Uncheck:
+App Settings
 Saved Searches
 Source Settings
 Extension Repos
+```
+
+---
+
+## Output Folder Does Not Exist
+
+Commit 8 creates output folders automatically when possible.
+
+This should work:
+
+```bash
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/test.tachibk"
+```
+
+If folder creation fails, create it manually:
+
+```bash
+mkdir -p testdata/v0.6
 ```
 
 ---

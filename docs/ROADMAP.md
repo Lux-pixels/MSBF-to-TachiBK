@@ -84,15 +84,14 @@ Confirm Komikku category order behavior
 
 ---
 
-### Commit 6 — Metadata Default and Delegated Sources Fix
+### Commit 6 — Metadata Default
 
 Completed:
 
 ```text
 Fetch metadata by default
 Keep --no-metadata for quick tests
-Add delegated sources app setting
-Disable delegated sources in generated backup
+Improve conversion defaults for restored MangaDex entries
 Start versioned testdata folder convention
 ```
 
@@ -100,7 +99,7 @@ Start versioned testdata folder convention
 
 ### Commit 7 — Documentation
 
-Current:
+Completed:
 
 ```text
 README progress summary
@@ -113,28 +112,25 @@ Recommended restore settings
 
 ---
 
-## Remaining Before V1
-
 ### Commit 8 — Better CLI Options
 
-Planned:
+Current:
 
 ```text
 Add --help
 Add --version
-Add --output <file>
-Improve argument parsing
-Make command usage clearer
+Add --output / -o
+Keep --metadata and --no-metadata
+Support optional convert command
+Support old command style
 Create output folders automatically
-```
-
-Possible future command format:
-
-```bash
-./gradlew run --args="convert samples/favorites.msbf --output testdata/v1.0/favorites.tachibk"
+Update documentation for safer restore behavior
+Keep App Settings restore disabled for now
 ```
 
 ---
+
+## Remaining Before V1
 
 ### Commit 9 — Pre-Conversion Validation
 
@@ -180,6 +176,7 @@ Confirm MangaDex entries open correctly
 Confirm categories restore correctly
 Confirm metadata appears where supported
 Confirm reports are accurate
+Confirm delegated sources are manually disabled
 ```
 
 ---
@@ -198,6 +195,13 @@ Create GitHub release
 Tag v1.0.0
 ```
 
+Target V1 tag:
+
+```bash
+git tag -a v1.0.0 -m "Initial stable MSBF to TachiBK converter"
+git push origin v1.0.0
+```
+
 ---
 
 ## After V1
@@ -213,7 +217,7 @@ Progress bar for metadata fetching
 Popup dialogs
 Support for more Manga Storm sources
 Optional duplicate removal
-More app settings
+More app settings after exact backup behavior is verified
 Better source mapping
 Chapter import if available
 Reading history import if available

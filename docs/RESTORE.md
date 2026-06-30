@@ -12,7 +12,7 @@ Before restoring the generated `.tachibk` file:
 2. Install the MangaDex extension.
 3. Generate the backup with metadata enabled.
 4. Copy the `.tachibk` file onto your Android device.
-5. If using BlueStacks, move the `.tachibk` file into Android’s **Downloads** folder before restoring.
+5. Restore from inside Komikku.
 
 Metadata is enabled by default. Use `--no-metadata` only for fast testing.
 
@@ -25,12 +25,12 @@ When restoring into Komikku, check:
 ```text
 Manga
 Categories
-App Settings
 ```
 
 Uncheck:
 
 ```text
+App Settings
 Saved Searches
 Source Settings
 Extension Repos
@@ -38,17 +38,29 @@ Extension Repos
 
 ---
 
-## Why App Settings Should Be Checked
+## Why App Settings Should Be Unchecked
 
-The generated backup currently includes one app setting:
+For now, **do not restore App Settings**.
+
+During testing, restoring App Settings caused delegated sources to become enabled again. That can make restored MangaDex entries open in a WebView / website 404 page instead of opening correctly through the MangaDex source.
+
+Until the exact Komikku backup setting behavior is verified, delegated sources should be handled manually.
+
+---
+
+## Delegated Sources Manual Fix
+
+After restoring the backup, manually disable delegated sources in Komikku.
+
+Look for:
 
 ```text
-enable_delegated_sources = false
+Komikku settings → Advanced / Developer tools → Enable delegated sources
 ```
 
-This disables delegated sources during restore.
+Make sure it is disabled.
 
-This is included because delegated MangaDex behavior can cause restored MangaDex entries to open with a WebView / website 404 error instead of opening correctly through the MangaDex source.
+This helps avoid MangaDex restored entries opening as a WebView / 404 page.
 
 ---
 
@@ -98,10 +110,11 @@ Generate backup with metadata
 Move backup into Android Downloads
 Restore Manga
 Restore Categories
-Restore App Settings
+Do not restore App Settings
 Do not restore Source Settings
 Do not restore Extension Repos
 Do not restore Saved Searches
+Manually disable delegated sources in Komikku
 Open several MangaDex entries
 Confirm categories restored
 Confirm MangaDex pages open without WebView / 404 errors
@@ -121,6 +134,7 @@ Tracking data
 Saved searches
 Source settings
 Extension repos
+App settings
 ```
 
 These may be added after V1 if the Manga Storm backup contains enough data to support them.
