@@ -10,7 +10,7 @@ object BackupBuilder {
         val manga = entries.map { entry ->
             BackupManga(
                 source = SourceMapper.toKomikkuSourceId(entry.sourceKey),
-                url = entry.url,
+                url = normalizeMangaDexUrl(entry.url),
                 title = entry.title,
                 dateAdded = System.currentTimeMillis(),
                 favorite = true,
@@ -40,5 +40,13 @@ object BackupBuilder {
             ),
             backupSources = sources
         )
+    }
+
+    private fun normalizeMangaDexUrl(url: String): String {
+    val regex = Regex("""/title/([0-9a-fA-F-]{36})""")
+    val match = regex.find(url)
+        ?: error("Invalid MangaDex URL: $url")
+
+    return "/title/${match.groupValues[1]}"
     }
 }

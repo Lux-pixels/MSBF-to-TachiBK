@@ -1,9 +1,13 @@
+import backup.BackupBuilder
+import backup.BackupWriter
 import parser.MsbfParser
 import java.io.File
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Usage: ./gradlew run --args=\"favorites.msbf\"")
+        println("Usage:")
+        println("  ./gradlew run --args=\"samples/favorites.msbf\"")
+        println("  ./gradlew run --args=\"samples/favorites.msbf output.tachibk\"")
         return
     }
 
@@ -14,27 +18,39 @@ fun main(args: Array<String>) {
         return
     }
 
-   val entries = MsbfParser.parse(inputFile)
+    val outputFile = if (args.size >= 2) {
+        File(args[1])
+    } else {
+        File("MSBF-to-TachiBK.tachibk")
+    }
+
+    val entries = MsbfParser.parse(inputFile)
 
     println()
     println("Loaded ${entries.size} manga.")
     println()
 
     println("Sources:")
-
-    entries
-     .groupBy { it.sourceKey }
-     .forEach { (source, list) ->
+    entries.groupBy { it.sourceKey }.forEach { (source, list) ->
         println("  $source: ${list.size}")
-     }
+    }
+
+    val backup = BackupBuilder.build(entries)
 
     println()
-    println("First 10 titles:")
-    println()
+    println("Backup Summary")
+    println("==============")
+    println("Manga: ${backup.backupManga.size}")
+    println("Sources: ${backup.backupSources.size}")
+    println("Categories: ${backup.backupCategories.size}")
 
-    entries
-        .take(10)
-        .forEach {
-            println(" • ${it.title}")
-        }
+    backup.backupSources.forEach {
+        println("Source -> ${it.name} (${it.sourceId})")
+    }
+
+    BackupWriter.write(backup, outputFile)
+
+    println()
+    println("Backup written to:")
+    println(outputFile.absolutePath)
 }
