@@ -134,19 +134,19 @@ Show version:
 Recommended command:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
 ```
 
 Old command style is still supported:
 
 ```bash
-./gradlew run --args="samples/testfavorites.msbf testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
+./gradlew run --args="samples/testfavorites.msbf testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
 ```
 
 Quick test without metadata:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/MSBF-to-TachiBK-v0.8test-no-meta.tachibk --no-metadata"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/MSBF-to-TachiBK-v0.9test-no-meta.tachibk --no-metadata"
 ```
 
 Metadata is enabled by default.
@@ -195,7 +195,7 @@ Report duplicates only:
 Remove duplicates:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/deduped.tachibk --remove-duplicates"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/deduped.tachibk --remove-duplicates"
 ```
 
 `--remove-duplicates` keeps the first copy of each MangaDex UUID and removes later duplicate copies.
@@ -285,7 +285,7 @@ testdata/v1.0/
 Example:
 
 ```text
-testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk
+testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk
 ```
 
 Generated backup files should not be committed.
@@ -305,6 +305,7 @@ More project documentation:
 
 - [Restore Guide](docs/RESTORE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Testing Guide](docs/TESTING.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ---

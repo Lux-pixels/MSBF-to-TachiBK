@@ -10,11 +10,11 @@ object Constants {
     const val APP_NAME = "MSBF-to-TachiBK"
 
     /**
-    * Commit 10 development version.
-    *
-    * v0.8.0 = optional duplicate handling.
-    */
-    const val VERSION = "0.8.0"
+     * Commit 11 development version.
+     *
+     * v0.9.0 = full compatibility testing.
+     */
+    const val VERSION = "0.9.0"
 
     /**
      * Manga Storm source key for MangaDex.

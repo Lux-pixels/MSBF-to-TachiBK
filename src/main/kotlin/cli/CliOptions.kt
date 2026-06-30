@@ -202,12 +202,13 @@ object CliParser {
               ./gradlew run --args="convert <input.msbf> --output <output.tachibk>"
               ./gradlew run --args="<input.msbf> <output.tachibk>"
 
+            
             Examples:
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
-              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/quick-test.tachibk --no-metadata"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
+              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/quick-test.tachibk --no-metadata"
               ./gradlew run --args="convert samples/testfavorites.msbf --report-duplicates-only"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/deduped.tachibk --remove-duplicates"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/deduped.tachibk --remove-duplicates"
 
             Options:
               --output, -o <file>       Output .tachibk file path
