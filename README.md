@@ -6,6 +6,7 @@
 
 <p align="center">
   <img alt="Status" src="https://img.shields.io/badge/status-pre--V1-orange">
+  <img alt="Version" src="https://img.shields.io/badge/current-v0.9.x-blue">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-JVM-purple">
   <img alt="Source" src="https://img.shields.io/badge/source-MangaDex-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
@@ -19,7 +20,17 @@
 
 It reads a Manga Storm `.msbf` favorites export, converts supported entries into Komikku-compatible backup records, enriches them with MangaDex metadata, and writes a `.tachibk` backup file that can be restored in Komikku.
 
-The project is currently focused on **MangaDex support** and reliable Komikku restore behavior.
+The project is currently focused on:
+
+```text
+MangaDex support
+Reliable Komikku restore behavior
+Metadata enrichment
+Category mapping
+Duplicate reporting
+Safe validation
+Clear restore instructions
+```
 
 ---
 
@@ -30,7 +41,7 @@ The project is currently focused on **MangaDex support** and reliable Komikku re
 Current milestone:
 
 ```text
-v0.7.x — Pre-conversion validation
+v0.9.x — Full compatibility testing
 ```
 
 The converter currently works for MangaDex entries and can generate Komikku-readable `.tachibk` backups.
@@ -47,7 +58,11 @@ Currently supported:
 - Fetch MangaDex metadata by default
 - Add title, author, artist, description, genres, status, and cover metadata
 - Restore Manga Storm categories into Komikku
+- Validate input, output, sources, and MangaDex URLs before writing a backup
 - Detect duplicate MangaDex entries
+- Keep duplicates by default for safety
+- Optionally generate a duplicate report only
+- Optionally remove duplicate copies
 - Generate duplicate and metadata issue reports
 - Support old and new command styles
 - Create output folders automatically when possible
@@ -119,19 +134,19 @@ Show version:
 Recommended command:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/MSBF-to-TachiBK-v0.6test.tachibk"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
 ```
 
 Old command style is still supported:
 
 ```bash
-./gradlew run --args="samples/testfavorites.msbf testdata/v0.6/MSBF-to-TachiBK-v0.6test.tachibk"
+./gradlew run --args="samples/testfavorites.msbf testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk"
 ```
 
 Quick test without metadata:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/MSBF-to-TachiBK-v0.6test-no-meta.tachibk --no-metadata"
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/MSBF-to-TachiBK-v0.8test-no-meta.tachibk --no-metadata"
 ```
 
 Metadata is enabled by default.
@@ -141,14 +156,14 @@ Metadata is enabled by default.
 ## CLI Options
 
 ```text
-convert                  Optional command word for the newer command style
---output, -o <file>       Output .tachibk file path
---metadata                Fetch MangaDex metadata; default behavior
---no-metadata             Skip MangaDex metadata for quick tests
---version, -v             Print version
---help, -h                Show help
---report-duplicates-only  Write duplicate report and stop before backup creation
---remove-duplicates       Keep first MangaDex entry and remove later duplicate copies
+convert                    Optional command word for the newer command style
+--output, -o <file>         Output .tachibk file path
+--metadata                  Fetch MangaDex metadata; default behavior
+--no-metadata               Skip MangaDex metadata for quick tests
+--report-duplicates-only    Write duplicate report and stop before backup creation
+--remove-duplicates         Keep first MangaDex entry and remove later duplicate copies
+--version, -v               Print version
+--help, -h                  Show help
 ```
 
 Supported command styles:
@@ -160,6 +175,30 @@ Supported command styles:
 ```bash
 ./gradlew run --args="<input.msbf> <output.tachibk>"
 ```
+
+---
+
+## Duplicate Handling
+
+Default behavior is safe:
+
+```text
+Duplicates are reported but kept.
+```
+
+Report duplicates only:
+
+```bash
+./gradlew run --args="convert samples/testfavorites.msbf --report-duplicates-only"
+```
+
+Remove duplicates:
+
+```bash
+./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.8/deduped.tachibk --remove-duplicates"
+```
+
+`--remove-duplicates` keeps the first copy of each MangaDex UUID and removes later duplicate copies.
 
 ---
 
@@ -237,13 +276,16 @@ testdata/v0.3/
 testdata/v0.4/
 testdata/v0.5/
 testdata/v0.6/
+testdata/v0.7/
+testdata/v0.8/
+testdata/v0.9/
 testdata/v1.0/
 ```
 
 Example:
 
 ```text
-testdata/v0.6/MSBF-to-TachiBK-v0.6test.tachibk
+testdata/v0.8/MSBF-to-TachiBK-v0.8test.tachibk
 ```
 
 Generated backup files should not be committed.
@@ -251,8 +293,8 @@ Generated backup files should not be committed.
 To keep a test folder in GitHub:
 
 ```bash
-mkdir -p testdata/v0.6
-touch testdata/v0.6/.gitkeep
+mkdir -p testdata/v0.9
+touch testdata/v0.9/.gitkeep
 ```
 
 ---
@@ -280,11 +322,36 @@ More project documentation:
 | 7 | Documentation and restore guide | ✅ Done |
 | 8 | Better CLI options | ✅ Done |
 | 9 | Pre-conversion validation | ✅ Done |
-| 10 | Optional duplicate handling | 🚧 Current |
-| 11 | Full compatibility test | Planned |
+| 10 | Optional duplicate handling | ✅ Done |
+| 11 | Full compatibility test | 🚧 Current |
 | 12 | V1 release cleanup | Planned |
+| 13 | Optional restore selections | Planned after V1 |
+| 14 | Windows 10 compatibility | Planned after V1 |
+| 15 | macOS Apple Silicon compatibility | Planned after V1 |
+| 16 | macOS Intel compatibility | Planned after V1 |
+| 17 | Linux x64 compatibility | Planned after V1 |
 
 See the full [Roadmap](docs/ROADMAP.md).
+
+---
+
+## V1 Goal
+
+The V1 release should provide a stable command-line converter for:
+
+```text
+Manga Storm .msbf input
+MangaDex entries
+Komikku-readable .tachibk output
+Manga restore
+Category restore
+Metadata fetching
+Duplicate reporting
+Optional duplicate removal
+Pre-conversion validation
+Clear restore instructions
+Safe default behavior
+```
 
 ---
 
@@ -294,7 +361,7 @@ Current limitations:
 
 - MangaDex is the only supported source
 - Metadata depends on MangaDex API availability
-- Duplicates are reported but not automatically removed
+- Duplicates are kept by default
 - Chapters are not restored yet
 - Reading progress is not restored yet
 - Reading history is not restored yet
@@ -303,6 +370,7 @@ Current limitations:
 - Source Settings are not restored yet
 - Extension Repos are not restored yet
 - Desktop app is not built yet
+- Native platform packages are not built yet
 
 ---
 
@@ -326,21 +394,19 @@ failed-connection-links.txt
 
 ## Planned After V1
 
-Possible post-V1 features:
+Post-V1 development will focus on:
 
+- Optional restore selections
+- App Settings selection
+- Extension Repos selection
+- Source Settings selection
+- Windows 10 compatibility
+- macOS Apple Silicon compatibility
+- macOS Intel compatibility
+- Linux x64 compatibility
 - Desktop drag-and-drop app
-- Windows executable
-- macOS app
-- Linux AppImage
-- Progress bar for metadata fetching
-- Support for more Manga Storm sources
-- Optional duplicate removal
-- More app settings after backup behavior is verified
-- Better source mapping
-- Chapter import if Manga Storm data supports it
-- Reading history import if Manga Storm data supports it
-- Validate input files, output paths, sources, and MangaDex URLs before writing a backup
-- Stop safely with clear errors when validation fails
+- More Manga Storm sources
+- More backup data if Manga Storm provides enough information
 
 ---
 

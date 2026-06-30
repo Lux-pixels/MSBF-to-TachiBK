@@ -9,25 +9,12 @@ MSBF-to-TachiBK converts **Manga Storm `.msbf` favorites exports** into **Komikk
 ## Current Milestone
 
 ```text
-v0.8.x — Optional duplicate handling
+v0.9.x — Full compatibility testing
 ```
 
-Commit 10 adds safer duplicate-control options while keeping the default behavior unchanged.
+Commit 11 is focused on testing the full converter flow before the first stable V1 release.
 
-Default behavior:
-
-```text
-Keep duplicates
-Write duplicate report when duplicates are found
-Continue conversion normally
-```
-
-Optional behavior:
-
-```text
---report-duplicates-only
---remove-duplicates
-```
+The goal is to confirm that the converter works with a full real Manga Storm export and restores correctly into a clean Komikku 1.13.6 profile.
 
 ---
 
@@ -44,6 +31,7 @@ Duplicate reporting
 Optional duplicate handling
 Pre-conversion validation
 Clear user documentation
+Safe default behavior
 ```
 
 ---
@@ -378,17 +366,15 @@ No backup was written.
 
 ---
 
-# Current Work
-
 ## Commit 10 — Optional Duplicate Handling
 
 Status:
 
 ```text
-Current
+Done
 ```
 
-Completed / being finalized:
+Completed:
 
 ```text
 Keep duplicates by default
@@ -441,22 +427,16 @@ Purpose:
 Give users control over duplicates without silently deleting library entries.
 ```
 
-Commit target:
-
-```text
-v0.8.0
-```
-
 ---
 
-# Remaining Before V1
+# Current Work
 
 ## Commit 11 — Full Compatibility Test
 
 Status:
 
 ```text
-Planned
+Current
 ```
 
 Planned:
@@ -506,6 +486,8 @@ v0.9.0
 
 ---
 
+# Remaining Before V1
+
 ## Commit 12 — V1 Release Cleanup
 
 Status:
@@ -539,6 +521,230 @@ Purpose:
 
 ```text
 Create the first stable release of MSBF-to-TachiBK.
+```
+
+---
+
+# Post-V1 Roadmap
+
+## Commit 13 — Optional Restore Selections
+
+Status:
+
+```text
+Planned after V1
+```
+
+Planned:
+
+```text
+Add optional App Settings support
+Add optional Extension Repos support
+Add optional Source Settings support
+Make restore sections selectable
+Keep optional restore sections disabled by default
+Avoid changing Komikku settings unless the user explicitly selects them
+Document restore risks clearly
+Test App Settings behavior before recommending it
+```
+
+Possible CLI options:
+
+```text
+--include-app-settings
+--include-extension-repos
+--include-source-settings
+```
+
+Recommended default:
+
+```text
+Do not include App Settings
+Do not include Extension Repos
+Do not include Source Settings
+```
+
+Purpose:
+
+```text
+Allow advanced users to include additional Komikku backup sections while keeping default conversion safe.
+```
+
+Notes:
+
+```text
+App Settings, Extension Repos, and Source Settings should remain optional because they can affect restore behavior and app configuration.
+```
+
+Commit target:
+
+```text
+v1.1.0
+```
+
+---
+
+## Commit 14 — Windows 10 Compatibility
+
+Status:
+
+```text
+Planned after V1
+```
+
+Planned:
+
+```text
+Create Windows 10-compatible release package
+Add Windows run script
+Test converter on Windows 10
+Document Windows usage
+Confirm Java/runtime requirements
+Confirm path handling works on Windows
+Confirm output folder creation works on Windows
+```
+
+Possible outputs:
+
+```text
+Windows zip package
+Windows .bat launcher
+Future Windows desktop app or .exe
+```
+
+Purpose:
+
+```text
+Make the converter easy to run on Windows 10.
+```
+
+Commit target:
+
+```text
+v1.2.0
+```
+
+---
+
+## Commit 15 — macOS Apple Silicon Compatibility
+
+Status:
+
+```text
+Planned after V1
+```
+
+Planned:
+
+```text
+Create macOS Apple Silicon-compatible release package
+Test on Apple Silicon Mac
+Document macOS Apple Silicon usage
+Confirm Java/runtime requirements
+Confirm file permissions
+Confirm command-line launcher works
+```
+
+Possible outputs:
+
+```text
+macOS Apple Silicon zip package
+macOS shell launcher
+Future native app package
+```
+
+Purpose:
+
+```text
+Make the converter easy to run on Apple Silicon Macs.
+```
+
+Commit target:
+
+```text
+v1.3.0
+```
+
+---
+
+## Commit 16 — macOS Intel Compatibility
+
+Status:
+
+```text
+Planned after V1
+```
+
+Planned:
+
+```text
+Create macOS Intel-compatible release package
+Test on Intel Mac
+Document macOS Intel usage
+Confirm Java/runtime requirements
+Confirm file permissions
+Confirm command-line launcher works
+```
+
+Possible outputs:
+
+```text
+macOS Intel zip package
+macOS shell launcher
+Future native app package
+```
+
+Purpose:
+
+```text
+Make the converter easy to run on Intel-based Macs.
+```
+
+Commit target:
+
+```text
+v1.4.0
+```
+
+---
+
+## Commit 17 — Linux x64 Compatibility
+
+Status:
+
+```text
+Planned after V1
+```
+
+Planned:
+
+```text
+Create Linux x64-compatible release package
+Test on Linux x64
+Document Linux usage
+Confirm Java/runtime requirements
+Confirm shell launcher works
+Confirm output folder creation works
+```
+
+Possible outputs:
+
+```text
+Linux x64 tar.gz package
+Linux shell launcher
+Future AppImage
+```
+
+Purpose:
+
+```text
+Make the converter easy to run on Linux x64.
+```
+
+Commit target:
+
+```text
+v1.5.0
 ```
 
 ---
@@ -577,6 +783,7 @@ More source support
 App Settings restore
 Source Settings restore
 Extension Repos restore
+Native platform packages
 ```
 
 Those can come after V1.
@@ -600,6 +807,7 @@ App Settings are not restored yet
 Source Settings are not restored yet
 Extension Repos are not restored yet
 Desktop app is not built yet
+Native Windows/macOS/Linux packages are not built yet
 ```
 
 ---
@@ -656,6 +864,7 @@ Tracking data
 Custom categories beyond current status mapping
 Source settings
 App settings after exact backup behavior is verified
+Extension repos after restore behavior is verified
 ```
 
 ---
@@ -703,17 +912,20 @@ Improve rate-limit handling
 | `v0.8.0` | Optional duplicate handling |
 | `v0.9.0` | Full compatibility testing |
 | `v1.0.0` | First stable release |
+| `v1.1.0` | Optional restore selections |
+| `v1.2.0` | Windows 10 compatibility |
+| `v1.3.0` | macOS Apple Silicon compatibility |
+| `v1.4.0` | macOS Intel compatibility |
+| `v1.5.0` | Linux x64 compatibility |
 
 ---
 
 # Current Recommended Next Steps
 
-After Commit 10 is committed:
-
 ```text
-1. Tag v0.8.0
-2. Start Commit 11
-3. Run full compatibility test
+1. Start Commit 11
+2. Create a full compatibility testing checklist
+3. Run full conversion with metadata
 4. Restore into clean Komikku 1.13.6 profile
 5. Confirm categories, metadata, duplicate behavior, and MangaDex opening behavior
 6. Prepare V1 release cleanup
