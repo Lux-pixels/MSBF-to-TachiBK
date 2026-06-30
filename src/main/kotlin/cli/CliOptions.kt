@@ -5,9 +5,6 @@ import java.io.File
 
 /**
  * Parsed command-line options for one converter run.
- *
- * The goal is to keep argument parsing separate from Main.kt so the main
- * conversion flow stays readable.
  */
 data class CliOptions(
     val inputFile: File?,
@@ -32,14 +29,6 @@ data class CliOptions(
 
 /**
  * Small command-line parser for MSBF-to-TachiBK.
- *
- * Supported styles:
- *
- * Old/simple style:
- * ./gradlew run --args="samples/favorites.msbf testdata/v0.8/output.tachibk"
- *
- * New command style:
- * ./gradlew run --args="convert samples/favorites.msbf --output testdata/v0.8/output.tachibk"
  */
 object CliParser {
     fun parse(args: Array<String>): CliOptions {
@@ -92,31 +81,18 @@ object CliParser {
                 }
 
                 "--metadata" -> {
-                    /**
-                     * Metadata is already enabled by default, but this flag is accepted
-                     * so users can be explicit.
-                     */
                     fetchMetadata = true
                 }
 
                 "--no-metadata" -> {
-                    /**
-                     * Fast test mode. This skips MangaDex API calls.
-                     */
                     fetchMetadata = false
                 }
 
                 "--report-duplicates-only" -> {
-                    /**
-                     * Generate duplicate-manga-report.txt and stop before writing backup.
-                     */
                     reportDuplicatesOnly = true
                 }
 
                 "--remove-duplicates" -> {
-                    /**
-                     * Keep the first copy of each MangaDex UUID and remove later copies.
-                     */
                     removeDuplicates = true
                 }
 
@@ -143,19 +119,10 @@ object CliParser {
             index++
         }
 
-        /**
-         * These modes conflict because report-only mode does not write a backup.
-         */
         if (reportDuplicatesOnly && removeDuplicates) {
             errors += "Use either --report-duplicates-only or --remove-duplicates, not both."
         }
 
-        /**
-         * Positional arguments:
-         *
-         * 1st = input .msbf file
-         * 2nd = output .tachibk file, unless --output was used
-         */
         val inputFile = positionalArgs.getOrNull(0)?.let { File(it) }
 
         if (outputFile == null) {
@@ -202,13 +169,12 @@ object CliParser {
               ./gradlew run --args="convert <input.msbf> --output <output.tachibk>"
               ./gradlew run --args="<input.msbf> <output.tachibk>"
 
-            
             Examples:
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
-              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.9/MSBF-to-TachiBK-v0.9test.tachibk"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/quick-test.tachibk --no-metadata"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/MSBF-to-TachiBK-v0.10test.tachibk"
+              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.10/MSBF-to-TachiBK-v0.10test.tachibk"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/quick-test.tachibk --no-metadata"
               ./gradlew run --args="convert samples/testfavorites.msbf --report-duplicates-only"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.9/deduped.tachibk --remove-duplicates"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/deduped.tachibk --remove-duplicates"
 
             Options:
               --output, -o <file>       Output .tachibk file path

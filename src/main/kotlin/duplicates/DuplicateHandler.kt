@@ -6,18 +6,6 @@ import java.io.File
 
 /**
  * Summary of duplicate manga found in the Manga Storm backup.
- *
- * duplicateGroups:
- *   Number of MangaDex UUIDs that appear more than once.
- *
- * duplicateEntries:
- *   Total number of entries involved in duplicate groups.
- *
- * extraDuplicateCopies:
- *   Number of duplicate copies beyond the first copy.
- *
- * reportPath:
- *   Path to duplicate-manga-report.txt when a report is written.
  */
 data class DuplicateStats(
     val duplicateGroups: Int,
@@ -28,12 +16,6 @@ data class DuplicateStats(
 
 /**
  * Result of removing duplicate manga entries.
- *
- * entries:
- *   The list that should continue into metadata fetching and backup writing.
- *
- * removedEntries:
- *   Duplicate entries that were removed.
  */
 data class DuplicateRemovalResult(
     val entries: List<MsbfEntry>,
@@ -43,7 +25,7 @@ data class DuplicateRemovalResult(
 /**
  * Handles duplicate MangaDex entries.
  *
- * Default project behavior is still safe:
+ * Default behavior is safe:
  * - Detect duplicates
  * - Report duplicates
  * - Keep all entries unless --remove-duplicates is used
@@ -51,9 +33,6 @@ data class DuplicateRemovalResult(
 object DuplicateHandler {
     /**
      * Group duplicate manga by MangaDex UUID.
-     *
-     * If a URL cannot be parsed, the raw URL is used as a fallback key.
-     * Validation should normally catch invalid MangaDex URLs before this runs.
      */
     fun findDuplicateGroups(entries: List<MsbfEntry>): Map<String, List<Pair<Int, MsbfEntry>>> {
         return entries
@@ -70,13 +49,12 @@ object DuplicateHandler {
 
     /**
      * Write duplicate-manga-report.txt and optionally print duplicate details.
-     *
-     * This does not remove anything. It only reports duplicates.
      */
     fun writeDuplicateReport(
         entries: List<MsbfEntry>,
         reportFile: File = File("duplicate-manga-report.txt"),
         printToConsole: Boolean = true,
+        logger: (String) -> Unit = ::println,
     ): DuplicateStats {
         val duplicateGroups = findDuplicateGroups(entries)
 
@@ -84,10 +62,10 @@ object DuplicateHandler {
             reportFile.delete()
 
             if (printToConsole) {
-                println()
-                println("Duplicate check:")
-                println("  Extra duplicate copies: 0")
-                println()
+                logger("")
+                logger("Duplicate check:")
+                logger("  Extra duplicate copies: 0")
+                logger("")
             }
 
             return DuplicateStats(
@@ -128,31 +106,31 @@ object DuplicateHandler {
         )
 
         if (printToConsole) {
-            println()
-            println("Duplicate check:")
-            println("  Duplicate manga groups: ${duplicateGroups.size}")
-            println("  Duplicate entries: $duplicateEntryCount")
-            println("  Extra duplicate copies: $extraDuplicateCount")
-            println()
+            logger("")
+            logger("Duplicate check:")
+            logger("  Duplicate manga groups: ${duplicateGroups.size}")
+            logger("  Duplicate entries: $duplicateEntryCount")
+            logger("  Extra duplicate copies: $extraDuplicateCount")
+            logger("")
 
-            println("Duplicate entries found:")
+            logger("Duplicate entries found:")
 
             duplicateGroups.forEach { (uuid, group) ->
-                println()
-                println("UUID: $uuid")
+                logger("")
+                logger("UUID: $uuid")
 
                 group.forEach { (entryNumber, entry) ->
-                    println("  Entry #$entryNumber")
-                    println("    Title: ${entry.title}")
-                    println("    Status: ${entry.status ?: "unknown"}")
-                    println("    URL: ${entry.url}")
+                    logger("  Entry #$entryNumber")
+                    logger("    Title: ${entry.title}")
+                    logger("    Status: ${entry.status ?: "unknown"}")
+                    logger("    URL: ${entry.url}")
                 }
             }
 
-            println()
-            println("Full duplicate report written to:")
-            println("  ${reportFile.absolutePath}")
-            println()
+            logger("")
+            logger("Full duplicate report written to:")
+            logger("  ${reportFile.absolutePath}")
+            logger("")
         }
 
         return DuplicateStats(
