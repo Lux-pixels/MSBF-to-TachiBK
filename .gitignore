@@ -1,25 +1,32 @@
-.gradle
+# Gradle
+.gradle/
+.kotlin/
+build/
 **/build/
 !**/src/**/build/
 
-# Ignore Gradle GUI config
-gradle-app.setting
-
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+# Gradle wrapper
 !gradle-wrapper.jar
-
-# Avoid ignore Gradle wrappper properties
 !gradle-wrapper.properties
 
-# Cache of project
+# Gradle GUI
+gradle-app.setting
 .gradletasknamecache
 
-# Eclipse Gradle plugin generated files
-# Eclipse Core
+# IDE
 .project
-# JDT-specific (Eclipse Java Development Tools)
 .classpath
+.idea/
+*.iml
 
+# OS
+.DS_Store
+
+# Converter files
 *.msbf
 *.tachibk
 *.proto.gz
+
+# Keep sample backups out of Git
+samples/*.msbf
+samples/*.tachibk
