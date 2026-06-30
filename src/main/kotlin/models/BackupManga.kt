@@ -3,13 +3,18 @@ package models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 
+
 @Serializable
 data class BackupManga(
     @ProtoNumber(1) var source: Long,
     @ProtoNumber(2) var url: String,
     @ProtoNumber(3) var title: String = "",
+    @ProtoNumber(4) var artist: String? = null,
+    @ProtoNumber(5) var author: String? = null,
+    @ProtoNumber(6) var description: String? = null,
     @ProtoNumber(7) var genre: List<String> = emptyList(),
     @ProtoNumber(8) var status: Int = 0,
+    @ProtoNumber(9) var thumbnailUrl: String? = null,
     @ProtoNumber(13) var dateAdded: Long = 0,
     @ProtoNumber(14) var viewer: Int = 0,
     @ProtoNumber(16) var chapters: List<BackupChapter> = emptyList(),

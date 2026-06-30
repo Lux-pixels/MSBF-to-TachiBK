@@ -15,6 +15,8 @@ dependencies {
     implementation("com.squareup.okio:okio:3.10.2")
 
     testImplementation(kotlin("test"))
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 }
 
 application {
@@ -23,4 +25,8 @@ application {
 
 kotlin {
     jvmToolchain(17)
+}
+
+tasks.withType<JavaExec> {
+    standardInput = System.`in`
 }

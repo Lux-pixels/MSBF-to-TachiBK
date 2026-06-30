@@ -30,3 +30,10 @@ gradle-app.setting
 # Keep sample backups out of Git
 samples/*.msbf
 samples/*.tachibk
+missing-metadata-links.txt
+duplicate-manga-report.txt
+missing-metadata-links.txt
+failed-connection-links.txt
+duplicate-manga-report.txt
+missing-metadata-links.txt
+failed-connection-links.txt
