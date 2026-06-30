@@ -2,9 +2,38 @@
 
 Development roadmap for **MSBF-to-TachiBK**.
 
-This project converts Manga Storm `.msbf` favorites exports into Komikku / Tachiyomi-style `.tachibk` backups.
+MSBF-to-TachiBK converts **Manga Storm `.msbf` favorites exports** into **Komikku / Tachiyomi-style `.tachibk` backups**.
 
-Current focus:
+---
+
+## Current Milestone
+
+```text
+v0.8.x — Optional duplicate handling
+```
+
+Commit 10 adds safer duplicate-control options while keeping the default behavior unchanged.
+
+Default behavior:
+
+```text
+Keep duplicates
+Write duplicate report when duplicates are found
+Continue conversion normally
+```
+
+Optional behavior:
+
+```text
+--report-duplicates-only
+--remove-duplicates
+```
+
+---
+
+## Project Focus
+
+Current project goals:
 
 ```text
 MangaDex support
@@ -12,21 +41,10 @@ Komikku restore reliability
 Metadata enrichment
 Category mapping
 Duplicate reporting
+Optional duplicate handling
 Pre-conversion validation
 Clear user documentation
 ```
-
----
-
-## Current Milestone
-
-```text
-v0.7.x — Pre-conversion validation
-```
-
-Commit 9 is focused on making the converter safer before it writes a backup.
-
-The converter now validates the input file, output path, parsed manga entries, supported sources, and MangaDex URLs before conversion continues.
 
 ---
 
@@ -140,18 +158,18 @@ Write failed connection report
 Improve terminal summary output
 ```
 
-Purpose:
-
-```text
-Make restored MangaDex entries load more reliably and provide useful debugging reports.
-```
-
 Generated reports:
 
 ```text
 duplicate-manga-report.txt
 missing-metadata-links.txt
 failed-connection-links.txt
+```
+
+Purpose:
+
+```text
+Make restored MangaDex entries load more reliably and provide useful debugging reports.
 ```
 
 ---
@@ -301,17 +319,15 @@ Make the converter easier to run and easier to understand from the terminal.
 
 ---
 
-# Current Work
-
 ## Commit 9 — Pre-Conversion Validation
 
 Status:
 
 ```text
-Current
+Done
 ```
 
-Completed / being finalized:
+Completed:
 
 ```text
 Validate input file exists
@@ -360,47 +376,63 @@ Validation failed:
 No backup was written.
 ```
 
-Commit target:
-
-```text
-v0.7.0
-```
-
 ---
 
-# Remaining Before V1
+# Current Work
 
 ## Commit 10 — Optional Duplicate Handling
 
 Status:
 
 ```text
-Planned
+Current
 ```
 
-Planned:
+Completed / being finalized:
 
 ```text
 Keep duplicates by default
-Add duplicate report-only mode
-Possibly add --remove-duplicates
-Clearly show which entries would be removed
-Avoid removing anything without explicit user choice
-Keep current duplicate report behavior
+Add --report-duplicates-only
+Add --remove-duplicates
+Write duplicate report before backup creation
+Stop before backup creation in duplicate-report-only mode
+Keep first MangaDex entry when duplicate removal is enabled
+Remove later duplicate copies only when explicitly requested
+Show duplicate removal summary
+Keep default behavior safe
+Move duplicate logic into DuplicateHandler
 ```
 
-Possible future flags:
+New duplicate options:
 
 ```text
---keep-duplicates
---remove-duplicates
 --report-duplicates-only
+--remove-duplicates
 ```
 
-Recommended default:
+Default behavior:
 
 ```text
-Keep duplicates
+Duplicates are reported but kept.
+```
+
+`--report-duplicates-only` behavior:
+
+```text
+Write duplicate-manga-report.txt
+Print duplicate summary
+Stop before metadata fetching
+Stop before backup creation
+No backup is written
+```
+
+`--remove-duplicates` behavior:
+
+```text
+Keep the first copy of each MangaDex UUID
+Remove later duplicate copies
+Print duplicate removal summary
+Continue conversion with deduped list
 ```
 
 Purpose:
@@ -409,7 +441,15 @@ Purpose:
 Give users control over duplicates without silently deleting library entries.
 ```
 
+Commit target:
+
+```text
+v0.8.0
+```
+
 ---
+
+# Remaining Before V1
 
 ## Commit 11 — Full Compatibility Test
 
@@ -430,6 +470,8 @@ Confirm MangaDex entries open correctly
 Confirm categories restore correctly
 Confirm metadata appears where supported
 Confirm duplicate report is accurate
+Confirm duplicate removal works when requested
+Confirm duplicate-report-only mode stops safely
 Confirm missing metadata report is accurate
 Confirm failed connection report behavior
 Confirm delegated sources are manually disabled
@@ -454,6 +496,12 @@ Purpose:
 
 ```text
 Verify the converter is stable enough for a V1 release.
+```
+
+Commit target:
+
+```text
+v0.9.0
 ```
 
 ---
@@ -507,6 +555,8 @@ Manga restore
 Category restore
 Metadata fetching
 Duplicate reporting
+Optional duplicate removal
+Duplicate report-only mode
 Missing metadata reporting
 Failed connection reporting
 Pre-conversion validation
@@ -519,7 +569,7 @@ V1 should not require:
 
 ```text
 Desktop app
-Automatic duplicate removal
+Automatic duplicate removal by default
 Chapter import
 Reading history import
 Tracking import
@@ -540,7 +590,7 @@ Current limitations:
 ```text
 MangaDex is the only supported source
 Metadata depends on MangaDex API availability
-Duplicates are reported but not automatically removed
+Duplicates are kept by default
 Chapters are not restored yet
 Reading progress is not restored yet
 Reading history is not restored yet
@@ -616,10 +666,10 @@ Possible future options:
 
 ```text
 Interactive duplicate review
-Keep first duplicate only
-Keep newest duplicate only
+Keep newest duplicate instead of first duplicate
 Export duplicate cleanup report
 Preview duplicate removal before writing backup
+Duplicate comparison report
 ```
 
 ---
@@ -658,12 +708,13 @@ Improve rate-limit handling
 
 # Current Recommended Next Steps
 
-After Commit 9 is committed:
+After Commit 10 is committed:
 
 ```text
-1. Tag v0.7.0
-2. Start Commit 10
-3. Add optional duplicate handling
-4. Run full conversion test
-5. Prepare V1 compatibility testing
+1. Tag v0.8.0
+2. Start Commit 11
+3. Run full compatibility test
+4. Restore into clean Komikku 1.13.6 profile
+5. Confirm categories, metadata, duplicate behavior, and MangaDex opening behavior
+6. Prepare V1 release cleanup
 ```

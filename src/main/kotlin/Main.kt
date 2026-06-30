@@ -1,6 +1,7 @@
 import backup.BackupBuilder
 import backup.BackupWriter
 import cli.CliParser
+import duplicates.DuplicateHandler
 import metadata.MangaDexClient
 import metadata.MangaDexFetchResult
 import metadata.MangaDexMetadata
@@ -17,6 +18,8 @@ import java.io.File
  * - Reads a Manga Storm .msbf file
  * - Validates the conversion before writing a backup
  * - Detects duplicate manga
+ * - Optionally reports duplicates only
+ * - Optionally removes duplicate manga
  * - Fetches MangaDex metadata by default
  * - Builds a Komikku/Tachiyomi .tachibk backup
  */
@@ -60,24 +63,33 @@ fun main(args: Array<String>) {
 
     /**
      * If no output file is provided, write to a default file in the current folder.
+     *
+     * For --report-duplicates-only, this output file is not used because no backup
+     * is written.
      */
     val outputFile = options.outputFile ?: File("MSBF-to-TachiBK.tachibk")
 
     /**
      * Validate input/output files before parsing.
      *
-     * This catches missing files, wrong extensions, empty files, and output
-     * folder problems before the converter does any real work.
+     * If this is duplicate-report-only mode, the output file does not matter,
+     * so use a safe temporary .tachibk name for validation.
      */
+    val outputFileForValidation = if (options.reportDuplicatesOnly) {
+        File("duplicate-report-only.tachibk")
+    } else {
+        outputFile
+    }
+
     val fileValidation = ConversionValidator.validateFiles(
         inputFile = inputFile,
-        outputFile = outputFile,
+        outputFile = outputFileForValidation,
     )
 
     if (!fileValidation.isValid) {
         ConversionValidator.printSummary(
             inputFile = inputFile,
-            outputFile = outputFile,
+            outputFile = outputFileForValidation,
             entries = emptyList(),
             result = fileValidation,
         )
@@ -101,7 +113,7 @@ fun main(args: Array<String>) {
 
         ConversionValidator.printSummary(
             inputFile = inputFile,
-            outputFile = outputFile,
+            outputFile = outputFileForValidation,
             entries = emptyList(),
             result = parseValidation,
         )
@@ -112,14 +124,15 @@ fun main(args: Array<String>) {
     }
 
     /**
-     * Validate parsed entries before metadata fetching and backup writing.
+     * Validate parsed entries before duplicate handling, metadata fetching,
+     * and backup writing.
      */
     val entryValidation = ConversionValidator.validateEntries(entries)
     val validationResult = fileValidation + entryValidation
 
     ConversionValidator.printSummary(
         inputFile = inputFile,
-        outputFile = outputFile,
+        outputFile = outputFileForValidation,
         entries = entries,
         result = validationResult,
     )
@@ -128,6 +141,62 @@ fun main(args: Array<String>) {
         println()
         println("No backup was written.")
         return
+    }
+
+    /**
+     * Write duplicate report before any optional duplicate removal.
+     *
+     * Default behavior:
+     * - Report duplicates
+     * - Keep duplicates
+     */
+    val duplicateStats = DuplicateHandler.writeDuplicateReport(entries)
+
+    /**
+     * In report-only mode, stop after creating the duplicate report.
+     */
+    if (options.reportDuplicatesOnly) {
+        println("Duplicate report-only mode enabled.")
+        println("No backup was written.")
+
+        if (duplicateStats.reportPath != null) {
+            println()
+            println("Duplicate report:")
+            println(duplicateStats.reportPath)
+        }
+
+        return
+    }
+
+    /**
+     * Optionally remove duplicate entries.
+     *
+     * Safe default remains keeping duplicates.
+     */
+    val conversionEntries = if (options.removeDuplicates) {
+        val removalResult = DuplicateHandler.removeDuplicates(entries)
+
+        println()
+        println("Duplicate removal:")
+        println("  Original entries: ${entries.size}")
+        println("  Removed duplicate copies: ${removalResult.removedEntries.size}")
+        println("  Entries kept: ${removalResult.entries.size}")
+
+        if (removalResult.removedEntries.isNotEmpty()) {
+            println()
+            println("Removed duplicate entries:")
+
+            removalResult.removedEntries.forEach { (entryNumber, entry) ->
+                println("  Entry #$entryNumber")
+                println("    Title: ${entry.title}")
+                println("    Status: ${entry.status ?: "unknown"}")
+                println("    URL: ${entry.url}")
+            }
+        }
+
+        removalResult.entries
+    } else {
+        entries
     }
 
     /**
@@ -140,10 +209,11 @@ fun main(args: Array<String>) {
     println("Manga Backup Status Summary")
     println("===========================")
     println("Total Manga Identified: ${entries.size}")
+    println("Manga Included In Backup: ${conversionEntries.size}")
     println()
 
     println("Sources:")
-    entries.groupBy { it.sourceKey }.forEach { (source, list) ->
+    conversionEntries.groupBy { it.sourceKey }.forEach { (source, list) ->
         println("  $source: ${list.size}")
     }
 
@@ -153,7 +223,7 @@ fun main(args: Array<String>) {
     /**
      * Count how many manga will go into each Manga Storm category.
      */
-    val categoryCounts = entries.groupBy {
+    val categoryCounts = conversionEntries.groupBy {
         BackupBuilder.mangaStormStatusLabel(it.status)
     }
 
@@ -170,19 +240,17 @@ fun main(args: Array<String>) {
     println("Conversion Options:")
     println("  Metadata fetch: ${if (fetchMetadata) "enabled" else "skipped"}")
     println("  Output file: ${outputFile.path}")
+    println("  Duplicate handling: ${if (options.removeDuplicates) "remove duplicates" else "keep duplicates"}")
     println("  Delegated sources: manually disable in Komikku")
 
     /**
-     * Duplicate detection does not require metadata.
-     * It uses the MangaDex UUID from the .msbf URL.
-     */
-    writeDuplicateReport(entries)
-
-    /**
      * Fetch MangaDex metadata unless --no-metadata was provided.
+     *
+     * If duplicates were removed, metadata is fetched only for entries that
+     * remain in the final backup.
      */
     val metadataByUuid = if (fetchMetadata) {
-        fetchMangaDexMetadata(entries)
+        fetchMangaDexMetadata(conversionEntries)
     } else {
         File("missing-metadata-links.txt").delete()
         File("failed-connection-links.txt").delete()
@@ -192,7 +260,7 @@ fun main(args: Array<String>) {
     /**
      * Build the backup object and write it as a .tachibk file.
      */
-    val backup = BackupBuilder.build(entries, metadataByUuid)
+    val backup = BackupBuilder.build(conversionEntries, metadataByUuid)
 
     println()
 
@@ -231,7 +299,8 @@ fun main(args: Array<String>) {
  * Fetch metadata from the MangaDex API for every unique MangaDex UUID.
  *
  * Duplicate manga are detected here too so the user can see them while metadata
- * is being fetched.
+ * is being fetched. When --remove-duplicates is used, this receives the deduped
+ * entry list.
  */
 private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDexMetadata> {
     println()
@@ -334,117 +403,6 @@ private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDe
     )
 
     return metadataByUuid
-}
-
-/**
- * Summary data returned by duplicate detection.
- */
-private data class DuplicateStats(
-    val duplicateGroups: Int,
-    val duplicateEntries: Int,
-    val extraDuplicateCopies: Int,
-    val reportPath: String?,
-)
-
-/**
- * Find duplicate MangaDex entries by UUID and write a duplicate report file.
- *
- * Duplicate detection works even when metadata fetching is skipped.
- */
-private fun writeDuplicateReport(entries: List<MsbfEntry>): DuplicateStats {
-    val duplicateGroups = entries
-        .mapIndexed { index, entry -> index + 1 to entry }
-        .groupBy { (_, entry) ->
-            runCatching {
-                BackupBuilder.extractMangaDexUuid(entry.url)
-            }.getOrElse {
-                entry.url
-            }
-        }
-        .filterValues { it.size > 1 }
-
-    val reportFile = File("duplicate-manga-report.txt")
-
-    if (duplicateGroups.isEmpty()) {
-        reportFile.delete()
-
-        println()
-        println("Duplicate check:")
-        println("  Extra duplicate copies: 0")
-        println()
-
-        return DuplicateStats(
-            duplicateGroups = 0,
-            duplicateEntries = 0,
-            extraDuplicateCopies = 0,
-            reportPath = null,
-        )
-    }
-
-    val duplicateEntryCount = duplicateGroups.values.sumOf { it.size }
-    val extraDuplicateCount = duplicateGroups.values.sumOf { it.size - 1 }
-
-    /**
-     * Write the full duplicate report to a text file.
-     */
-    reportFile.writeText(
-        buildString {
-            appendLine("MSBF-to-TachiBK Duplicate Manga Report")
-            appendLine("=====================================")
-            appendLine()
-            appendLine("Duplicate groups: ${duplicateGroups.size}")
-            appendLine("Duplicate entries: $duplicateEntryCount")
-            appendLine("Extra duplicate copies: $extraDuplicateCount")
-            appendLine()
-
-            duplicateGroups.forEach { (uuid, group) ->
-                appendLine("UUID: $uuid")
-
-                group.forEach { (entryNumber, entry) ->
-                    appendLine("  Entry #$entryNumber")
-                    appendLine("     Title: ${entry.title}")
-                    appendLine("     Source: ${entry.sourceKey}")
-                    appendLine("     Status: ${entry.status ?: "unknown"}")
-                    appendLine("     URL: ${entry.url}")
-                }
-
-                appendLine()
-            }
-        }
-    )
-
-    println()
-    println("Duplicate check:")
-    println("  Duplicate manga groups: ${duplicateGroups.size}")
-    println("  Duplicate entries: $duplicateEntryCount")
-    println("  Extra duplicate copies: $extraDuplicateCount")
-    println()
-
-    println("Duplicate entries found:")
-
-    duplicateGroups.forEach { (uuid, group) ->
-        println()
-        println("UUID: $uuid")
-
-        group.forEach { (entryNumber, entry) ->
-            println("  Entry #$entryNumber")
-            println("    Title: ${entry.title}")
-            println("    Status: ${entry.status ?: "unknown"}")
-            println("    URL: ${entry.url}")
-        }
-    }
-
-    println()
-    println("Full duplicate report written to:")
-    println("  ${reportFile.absolutePath}")
-    println()
-
-    return DuplicateStats(
-        duplicateGroups = duplicateGroups.size,
-        duplicateEntries = duplicateEntryCount,
-        extraDuplicateCopies = extraDuplicateCount,
-        reportPath = reportFile.absolutePath,
-    )
 }
 
 /**

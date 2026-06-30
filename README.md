@@ -147,6 +147,8 @@ convert                  Optional command word for the newer command style
 --no-metadata             Skip MangaDex metadata for quick tests
 --version, -v             Print version
 --help, -h                Show help
+--report-duplicates-only  Write duplicate report and stop before backup creation
+--remove-duplicates       Keep first MangaDex entry and remove later duplicate copies
 ```
 
 Supported command styles:
@@ -277,8 +279,8 @@ More project documentation:
 | 6 | Metadata fetched by default | ✅ Done |
 | 7 | Documentation and restore guide | ✅ Done |
 | 8 | Better CLI options | ✅ Done |
-| 9 | Pre-conversion validation | 🚧 Current |
-| 10 | Optional duplicate handling | Planned |
+| 9 | Pre-conversion validation | ✅ Done |
+| 10 | Optional duplicate handling | 🚧 Current |
 | 11 | Full compatibility test | Planned |
 | 12 | V1 release cleanup | Planned |
 
