@@ -2,56 +2,69 @@
 
 Convert **Manga Storm `.msbf` favorites exports** into **Komikku / Tachiyomi-style `.tachibk` backups**.
 
-This project started as a personal migration tool for moving a Manga Storm library into Komikku, but it is being built as a reusable open-source converter for anyone with a Manga Storm backup.
+This project is being built as a migration tool for moving a Manga Storm library into Komikku. The current focus is **MangaDex support**, reliable Komikku restore behavior, category mapping, metadata enrichment, duplicate reporting, and clear restore documentation.
 
 ---
 
-## Current Status
+## Project Status
 
-🚧 **In active development**
+🚧 **Active development — pre-V1**
+
+Current milestone:
+
+```text
+v0.5.x documentation / restore guidance phase
+```
+
+The converter currently works for MangaDex entries and can generate Komikku-readable `.tachibk` backups.
+
+---
+
+## Documentation
+
+More detailed documentation:
+
+- [Restore Guide](docs/RESTORE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Roadmap](docs/ROADMAP.md)
+
+---
+
+## What Works Now
 
 The converter can currently:
 
 - Parse Manga Storm `.msbf` files
-- Convert MangaDex entries into `.tachibk` backup records
-- Generate a Komikku-readable backup
+- Detect MangaDex entries
+- Convert MangaDex entries into Komikku/Tachiyomi backup records
+- Generate `.tachibk` files
 - Normalize MangaDex URLs
 - Fetch MangaDex metadata by default
-- Add cover URLs, authors, artists, descriptions, genres, and manga status
-- Detect duplicate manga entries
-- Write duplicate, missing metadata, and failed connection reports
+- Add title, author, artist, description, genre, status, and cover metadata
+- Detect duplicate MangaDex entries
+- Write duplicate reports
+- Write missing metadata reports
+- Write failed connection reports
 - Map Manga Storm status flags into Komikku categories
-- Disable Komikku delegated sources in the generated backup setting to avoid MangaDex WebView / 404 issues
+- Disable delegated sources in the generated backup setting to help avoid MangaDex WebView / 404 restore issues
 
 ---
 
-## Supported Source
+## Supported Sources
 
 Currently supported:
 
-- **MangaDex**
+| Source | Manga Storm Key | Komikku / Tachiyomi Source ID |
+|---|---:|---:|
+| MangaDex | `z13mangadex` | `2499283573021220255` |
 
-Manga Storm source key:
-
-```text
-z13mangadex
-```
-
-Komikku / Tachiyomi source ID:
-
-```text
-2499283573021220255
-```
-
-More sources may be added later.
+More sources may be added after V1.
 
 ---
 
-## Manga Storm Status Mapping
+## Manga Storm Category Mapping
 
-Manga Storm uses single-letter status flags.
-
-The converter currently maps them as:
+Manga Storm uses single-letter status flags. These are currently mapped into Komikku categories:
 
 | Manga Storm Flag | Komikku Category |
 |---|---|
@@ -59,7 +72,7 @@ The converter currently maps them as:
 | `Y` | Following |
 | `A` | On Hold |
 
-Unknown values are left uncategorized.
+Unknown or unsupported flags are left uncategorized.
 
 ---
 
@@ -69,18 +82,17 @@ Metadata is fetched from MangaDex **by default** because restored entries load m
 
 The converter attempts to add:
 
-- Cover image URL
-- Author
-- Artist
-- Description
-- Genres
-- Manga status:
-  - Ongoing
-  - Completed
-  - Hiatus
-  - Cancelled
+```text
+Title
+Author
+Artist
+Description
+Genres
+Cover URL
+Manga status
+```
 
-To skip metadata for fast testing, use:
+To skip metadata for a quick test backup, use:
 
 ```bash
 --no-metadata
@@ -92,8 +104,11 @@ To skip metadata for fast testing, use:
 
 Use:
 
-- Java 17
-- Gradle Wrapper included in the repository
+```text
+Java 17
+Gradle Wrapper
+Kotlin JVM
+```
 
 Check Java:
 
@@ -107,7 +122,7 @@ Expected:
 openjdk version "17.x"
 ```
 
-Build:
+Build the project:
 
 ```bash
 ./gradlew clean build
@@ -117,7 +132,7 @@ Build:
 
 ## Running the Converter
 
-Example test command:
+Example command:
 
 ```bash
 ./gradlew clean build
@@ -136,7 +151,7 @@ Metadata is enabled automatically unless `--no-metadata` is provided.
 
 ## Test Data Folder Convention
 
-Local test files should be stored in versioned folders:
+Local test output should use versioned folders:
 
 ```text
 testdata/v0.1/
@@ -152,7 +167,14 @@ Example:
 testdata/v0.4/MSBF-to-TachiBK-v0.4test.tachibk
 ```
 
-Generated `.tachibk` files and personal `.msbf` files should not be committed.
+Generated backup files should not be committed.
+
+Use `.gitkeep` files if a versioned folder should exist in GitHub:
+
+```bash
+mkdir -p testdata/v0.4
+touch testdata/v0.4/.gitkeep
+```
 
 ---
 
@@ -160,30 +182,64 @@ Generated `.tachibk` files and personal `.msbf` files should not be committed.
 
 Before restoring:
 
-1. Install the **MangaDex** extension in Komikku.
-2. Make sure the backup was generated with metadata unless doing a quick test.
-3. Copy the generated `.tachibk` file to the Android device.
-4. If using BlueStacks, move the backup into Android’s **Downloads** folder before restoring.
+1. Install Komikku.
+2. Install the MangaDex extension.
+3. Generate the backup with metadata enabled.
+4. Copy the `.tachibk` file onto the Android device.
+5. Restore the backup inside Komikku.
 
-In Komikku, restore the backup and check:
+Recommended restore options:
 
-- ✅ Manga
-- ✅ Categories
-- ✅ App Settings
+```text
+Check:
+- Manga
+- Categories
+- App Settings
 
 Uncheck:
+- Saved Searches
+- Source Settings
+- Extension Repos
+```
 
-- ☐ Saved Searches
-- ☐ Source Settings
-- ☐ Extension Repos
+The generated backup currently includes one app setting:
 
-The App Settings option is currently used so the backup can disable delegated sources, which helps prevent MangaDex WebView / 404 issues after restore.
+```text
+enable_delegated_sources = false
+```
+
+This is included because delegated MangaDex behavior can cause restored entries to open in a WebView / website 404 page instead of opening correctly through the MangaDex source.
+
+For more details, see:
+
+```text
+docs/RESTORE.md
+```
 
 ---
 
-## Current Output Reports
+## BlueStacks Restore Note
 
-The converter may generate these local text reports:
+When using BlueStacks, Komikku may fail to restore directly from the shared host folder.
+
+Recommended workaround:
+
+```text
+Copy the .tachibk file into Android Downloads first.
+Restore from Downloads inside Komikku.
+```
+
+More details are in:
+
+```text
+docs/TROUBLESHOOTING.md
+```
+
+---
+
+## Generated Reports
+
+The converter may generate these local report files:
 
 ```text
 duplicate-manga-report.txt
@@ -193,9 +249,7 @@ failed-connection-links.txt
 
 ### Duplicate Report
 
-Generated when the `.msbf` file contains duplicate MangaDex UUIDs.
-
-Example:
+Created when duplicate MangaDex UUIDs are found.
 
 ```text
 duplicate-manga-report.txt
@@ -203,9 +257,7 @@ duplicate-manga-report.txt
 
 ### Missing Metadata Report
 
-Generated when a MangaDex title exists in the `.msbf` file but metadata cannot be found.
-
-Example:
+Created when a MangaDex entry cannot be found or parsed.
 
 ```text
 missing-metadata-links.txt
@@ -213,9 +265,7 @@ missing-metadata-links.txt
 
 ### Failed Connection Report
 
-Generated when the converter cannot connect to MangaDex while fetching metadata.
-
-Example:
+Created when the converter cannot connect to MangaDex while fetching metadata.
 
 ```text
 failed-connection-links.txt
@@ -231,11 +281,13 @@ These reports are for debugging and should not be committed.
 
 Completed:
 
-- Gradle project setup
-- Kotlin JVM setup
-- Gradle wrapper
-- GitHub Actions build
-- Basic repository structure
+```text
+Gradle project setup
+Kotlin JVM setup
+Gradle wrapper
+GitHub Actions build
+Basic repository structure
+```
 
 ---
 
@@ -243,20 +295,28 @@ Completed:
 
 Completed:
 
-- Reads Manga Storm `.msbf` files
-- Extracts title, source key, URL, status, and timestamp
-- Verified against a real Manga Storm favorites export
+```text
+Read Manga Storm .msbf files
+Extract manga title
+Extract Manga Storm source key
+Extract MangaDex URL
+Extract Manga Storm status flag
+Extract timestamp when available
+```
 
 ---
 
-### Commit 3 — Initial `.tachibk` Generator
+### Commit 3 — Initial .tachibk Generator
 
 Completed:
 
-- Created minimal Komikku backup models
-- Generated gzip-compressed `.tachibk` backups
-- Added MangaDex source ID mapping
-- Confirmed Komikku can read the generated backup
+```text
+Create minimal Komikku backup models
+Generate gzip-compressed .tachibk backup
+Map MangaDex source ID
+Normalize MangaDex URLs
+Confirm Komikku can read generated backup
+```
 
 ---
 
@@ -264,13 +324,20 @@ Completed:
 
 Completed:
 
-- Fetches MangaDex metadata
-- Adds covers, authors, artists, descriptions, genres, and manga status
-- Detects duplicate MangaDex entries
-- Writes duplicate report
-- Writes missing metadata report
-- Writes failed connection report
-- Improved terminal summary output
+```text
+Fetch MangaDex metadata
+Add cover URLs
+Add authors
+Add artists
+Add descriptions
+Add genres
+Add manga status
+Detect duplicate MangaDex entries
+Write duplicate report
+Write missing metadata report
+Write failed connection report
+Improve terminal summary output
+```
 
 ---
 
@@ -278,58 +345,65 @@ Completed:
 
 Completed:
 
-- Maps Manga Storm status flags:
-  - `R` → Reading
-  - `Y` → Following
-  - `A` → On Hold
-- Restores categories into Komikku
-- Confirmed category order handling needed to match Komikku restore behavior
+```text
+Map R to Reading
+Map Y to Following
+Map A to On Hold
+Restore categories into Komikku
+Confirm Komikku category order behavior
+```
 
 ---
 
 ### Commit 6 — Metadata Default and Delegated Sources Fix
 
-Completed / in progress:
+Completed:
 
-- Metadata fetch is enabled by default
-- `--no-metadata` remains available for fast testing
-- Backup includes the setting to disable delegated sources
-- This helps prevent MangaDex WebView / 404 issues after restore
+```text
+Fetch metadata by default
+Keep --no-metadata for quick tests
+Add delegated sources app setting
+Disable delegated sources in generated backup
+Start versioned testdata folder convention
+```
+
+---
+
+### Commit 7 — Documentation
+
+Current documentation phase:
+
+```text
+README progress summary
+Restore guide
+Troubleshooting guide
+Roadmap file
+Known limitations
+Recommended restore settings
+```
 
 ---
 
-## Roadmap to V1
-
-### Commit 7 — README and Restore Documentation
-
-Planned:
-
-- Finalize restore instructions
-- Document required restore checkboxes
-- Document BlueStacks file location issue
-- Document metadata behavior
-- Document duplicate and metadata reports
-- Document current limitations
-
----
+## Remaining Before V1
 
 ### Commit 8 — Better CLI Options
 
 Planned:
 
-- Cleaner command-line arguments
-- Possible future flags:
-
 ```text
---output <file>
---metadata
---no-metadata
---dedupe-report-only
---version
---help
+Add --help
+Add --version
+Add --output <file>
+Improve argument parsing
+Make command usage clearer
+Create output folders automatically
 ```
 
-Current command works, but the CLI can be made easier to use.
+Possible future command format:
+
+```bash
+./gradlew run --args="convert samples/favorites.msbf --output testdata/v1.0/favorites.tachibk"
+```
 
 ---
 
@@ -337,43 +411,47 @@ Current command works, but the CLI can be made easier to use.
 
 Planned:
 
-- Verify input file exists
-- Verify input file is readable
-- Create output folders automatically
-- Detect unsupported sources clearly
-- Detect invalid MangaDex URLs clearly
-- Block empty backups
-- Show validation summary before writing backup
+```text
+Verify input file exists
+Verify input file is readable
+Verify output folder exists
+Create output folder when missing
+Detect unsupported sources before conversion
+Detect invalid MangaDex URLs before conversion
+Warn about empty backups
+Print validation summary
+```
 
 ---
 
 ### Commit 10 — Optional Duplicate Handling
 
-Currently, duplicates are reported but not removed.
-
-Possible future options:
+Planned:
 
 ```text
---keep-duplicates
---remove-duplicates
---report-duplicates-only
+Keep duplicates by default
+Add duplicate report-only mode
+Possibly add --remove-duplicates
+Clearly show which entries would be removed
+Avoid deleting anything without explicit user choice
 ```
-
-Default behavior should remain safe and avoid deleting entries automatically.
 
 ---
 
 ### Commit 11 — Full Compatibility Test
 
-Planned before V1:
+Planned:
 
-- Test full Manga Storm export
-- Fetch metadata
-- Restore into clean Komikku 1.13.6 profile
-- Confirm MangaDex pages open correctly
-- Confirm categories restore correctly
-- Confirm metadata appears where Komikku supports it
-- Confirm duplicate report is accurate
+```text
+Run full real Manga Storm export
+Fetch metadata
+Generate final pre-V1 backup
+Restore into clean Komikku 1.13.6 profile
+Confirm MangaDex entries open correctly
+Confirm categories restore correctly
+Confirm metadata appears where supported
+Confirm reports are accurate
+```
 
 ---
 
@@ -381,13 +459,17 @@ Planned before V1:
 
 Planned:
 
-- Final README
-- Version update to `1.0.0`
-- Release notes
-- Known issues section
-- GitHub release tag
+```text
+Update version to 1.0.0
+Finalize README
+Finalize restore instructions
+Add known issues section
+Add release notes
+Create GitHub release
+Tag v1.0.0
+```
 
-Target tag:
+Target V1 tag:
 
 ```bash
 git tag -a v1.0.0 -m "Initial stable MSBF to TachiBK converter"
@@ -398,19 +480,23 @@ git push origin v1.0.0
 
 ## Planned After V1
 
-Post-V1 ideas:
+Possible post-V1 features:
 
-- Desktop drag-and-drop app
-- Windows executable
-- macOS app
-- Linux AppImage
-- Progress bar for metadata fetching
-- Real popup dialogs
-- Support for additional Manga Storm sources
-- Optional duplicate removal
-- More app settings
-- Better source mapping
-- Chapter/history import if Manga Storm data supports it
+```text
+Desktop drag-and-drop app
+Windows executable
+macOS app
+Linux AppImage
+Progress bar for metadata fetching
+Popup dialogs
+Support for more Manga Storm sources
+Optional duplicate removal
+More app settings
+Better source mapping
+Chapter import if available
+Reading history import if available
+Tracking import if available
+```
 
 ---
 
@@ -418,14 +504,19 @@ Post-V1 ideas:
 
 Current limitations:
 
-- MangaDex is the only supported source
-- Metadata depends on MangaDex API availability
-- Categories are limited to Reading, Following, and On Hold
-- Duplicates are reported but not automatically removed
-- Chapter progress is not restored yet
-- Reading history is not restored yet
-- Tracker data is not restored yet
-- Desktop app is not built yet
+```text
+MangaDex is the only supported source
+Metadata depends on MangaDex API availability
+Duplicates are reported but not automatically removed
+Chapters are not restored yet
+Reading progress is not restored yet
+Reading history is not restored yet
+Tracker data is not restored yet
+Saved searches are not restored yet
+Source settings are not restored yet
+Extension repos are not restored yet
+Desktop app is not built yet
+```
 
 ---
 
@@ -433,7 +524,7 @@ Current limitations:
 
 Do not commit personal backup files.
 
-Ignored file types should include:
+Recommended `.gitignore` entries:
 
 ```gitignore
 *.msbf
