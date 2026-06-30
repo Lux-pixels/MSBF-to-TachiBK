@@ -1,7 +1,10 @@
 package backup
 
 import metadata.MangaDexMetadata
-import models.*
+import models.Backup
+import models.BackupCategory
+import models.BackupManga
+import models.BackupSource
 import parser.MsbfEntry
 
 /**
@@ -12,11 +15,15 @@ import parser.MsbfEntry
  * - Applying MangaDex metadata when available
  * - Mapping Manga Storm status codes into Komikku categories
  * - Adding source information
- * - Adding app-level backup preferences
+ *
+ * App Settings are intentionally not included for now.
+ * Restoring App Settings was causing delegated sources to become enabled again,
+ * so delegated sources should be handled manually in Komikku until we can verify
+ * the exact backup preference behavior after V1.
  */
 object BackupBuilder {
     /**
-     * Komikku appears to expect manga category values to match category order.
+     * Komikku expects manga category values to match category order.
      *
      * Reading = 0
      * Following = 1
@@ -51,7 +58,7 @@ object BackupBuilder {
                 // Fall back to the title from the .msbf file.
                 title = meta?.title ?: entry.title,
 
-                // These fields come from MangaDex metadata.
+                // These fields come from MangaDex metadata when metadata fetching is enabled.
                 artist = meta?.artist,
                 author = meta?.author,
                 description = meta?.description,
@@ -73,6 +80,11 @@ object BackupBuilder {
             )
         }
 
+        /**
+         * Add one BackupSource entry per unique Manga Storm source key.
+         *
+         * Right now MangaDex is the only supported source.
+         */
         val sources = entries
             .map { it.sourceKey }
             .distinct()
@@ -90,10 +102,7 @@ object BackupBuilder {
             backupCategories = mangaStormCategories(),
 
             // Add source mapping so Komikku recognizes the manga source.
-            backupSources = sources,
-
-            // Add app-level settings that should be restored with the backup.
-            backupPreferences = appSettingsPreferences()
+            backupSources = sources
         )
     }
 
@@ -164,20 +173,6 @@ object BackupBuilder {
                 order = ON_HOLD_CATEGORY_ORDER,
                 id = ON_HOLD_CATEGORY_ORDER
             ),
-        )
-    }
-
-    /**
-     * App settings included in the backup.
-     *
-     * This disables Komikku delegated sources when App Settings are restored.
-     */
-    private fun appSettingsPreferences(): List<BackupPreference> {
-        return listOf(
-            BackupPreference(
-                key = "enable_delegated_sources",
-                value = BooleanPreferenceValue(false)
-            )
         )
     }
 

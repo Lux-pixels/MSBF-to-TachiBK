@@ -1,5 +1,6 @@
 import backup.BackupBuilder
 import backup.BackupWriter
+import cli.CliParser
 import metadata.MangaDexClient
 import metadata.MangaDexFetchResult
 import metadata.MangaDexMetadata
@@ -17,18 +18,47 @@ import java.io.File
  * - Builds a Komikku/Tachiyomi .tachibk backup
  */
 fun main(args: Array<String>) {
-    if (args.isEmpty()) {
-        println("Usage:")
-        println("  ./gradlew run --args=\"samples/testfavorites.msbf testdata/v0.4/MSBF-to-TachiBK-v0.4test.tachibk\"")
-        println()
-        println("Metadata is fetched by default.")
-        println()
-        println("Optional:")
-        println("  Add --no-metadata only for quick test backups.")
+    val options = CliParser.parse(args)
+
+    /**
+     * Print help and exit.
+     */
+    if (options.showHelp) {
+        println(CliParser.usage())
         return
     }
 
-    val inputFile = File(args[0])
+    /**
+     * Print version and exit.
+     */
+    if (options.showVersion) {
+        println(CliParser.versionText())
+        return
+    }
+
+    /**
+     * Stop early if CLI parsing found problems.
+     */
+    if (options.errors.isNotEmpty()) {
+        println("Command error:")
+        options.errors.forEach { error ->
+            println("  - $error")
+        }
+
+        println()
+        println(CliParser.usage())
+        return
+    }
+
+    val inputFile = options.inputFile ?: run {
+        println("Error: Missing input .msbf file")
+        return
+    }
+
+    /**
+     * If no output file is provided, write to a default file in the current folder.
+     */
+    val outputFile = options.outputFile ?: File("MSBF-to-TachiBK.tachibk")
 
     if (!inputFile.exists()) {
         println("Error: File not found: ${inputFile.absolutePath}")
@@ -36,22 +66,29 @@ fun main(args: Array<String>) {
     }
 
     /**
-     * If the user provides a second argument, use it as the output backup path.
-     * Otherwise, write to a default file name in the current folder.
+     * Create the output folder automatically.
+     *
+     * Example:
+     * testdata/v0.6/output.tachibk
+     *
+     * If testdata/v0.6 does not exist, it will be created.
      */
-    val outputFile = if (args.size >= 2 && !args[1].startsWith("--")) {
-        File(args[1])
-    } else {
-        File("MSBF-to-TachiBK.tachibk")
+    outputFile.parentFile?.let { parent ->
+        if (!parent.exists()) {
+            val created = parent.mkdirs()
+
+            if (!created) {
+                println("Error: Could not create output folder: ${parent.absolutePath}")
+                return
+            }
+        }
     }
 
     /**
-     * Metadata is now enabled by default because Komikku imports work better
+     * Metadata is enabled by default because Komikku imports work better
      * when MangaDex metadata is included in the backup.
-     *
-     * Use --no-metadata only for fast test backups.
      */
-    val fetchMetadata = !args.contains("--no-metadata")
+    val fetchMetadata = options.fetchMetadata
 
     val entries = MsbfParser.parse(inputFile)
 
@@ -86,9 +123,10 @@ fun main(args: Array<String>) {
     }
 
     println()
-    println("App Settings:")
-    println("  Enable delegated sources: false")
+    println("Conversion Options:")
     println("  Metadata fetch: ${if (fetchMetadata) "enabled" else "skipped"}")
+    println("  Output file: ${outputFile.path}")
+    println("  Delegated sources: manually disable in Komikku")
 
     /**
      * Duplicate detection does not require metadata.
