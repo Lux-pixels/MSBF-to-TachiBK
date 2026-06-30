@@ -7,14 +7,24 @@ import parser.MsbfEntry
 import parser.MsbfParser
 import java.io.File
 
+/**
+ * CLI entry point for MSBF-to-TachiBK.
+ *
+ * This program:
+ * - Reads a Manga Storm .msbf file
+ * - Detects duplicate manga
+ * - Fetches MangaDex metadata by default
+ * - Builds a Komikku/Tachiyomi .tachibk backup
+ */
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
         println("Usage:")
-        println("  ./gradlew run --args=\"samples/testfavorites.msbf testdata/MSBF-to-TachiBK-v0.2test.tachibk\"")
+        println("  ./gradlew run --args=\"samples/testfavorites.msbf testdata/v0.4/MSBF-to-TachiBK-v0.4test.tachibk\"")
+        println()
+        println("Metadata is fetched by default.")
         println()
         println("Optional:")
-        println("  Add --metadata to fetch metadata automatically.")
-        println("  Add --no-metadata to skip metadata automatically.")
+        println("  Add --no-metadata only for quick test backups.")
         return
     }
 
@@ -25,17 +35,23 @@ fun main(args: Array<String>) {
         return
     }
 
+    /**
+     * If the user provides a second argument, use it as the output backup path.
+     * Otherwise, write to a default file name in the current folder.
+     */
     val outputFile = if (args.size >= 2 && !args[1].startsWith("--")) {
         File(args[1])
     } else {
         File("MSBF-to-TachiBK.tachibk")
     }
 
-    val fetchMetadata = when {
-        args.contains("--metadata") -> true
-        args.contains("--no-metadata") -> false
-        else -> askYesNo("Pull MangaDex metadata into the backup? This may take several minutes. (y/N): ")
-    }
+    /**
+     * Metadata is now enabled by default because Komikku imports work better
+     * when MangaDex metadata is included in the backup.
+     *
+     * Use --no-metadata only for fast test backups.
+     */
+    val fetchMetadata = !args.contains("--no-metadata")
 
     val entries = MsbfParser.parse(inputFile)
 
@@ -45,7 +61,7 @@ fun main(args: Array<String>) {
     println("Total Manga Identified: ${entries.size}")
     println()
 
-println("Sources:")
+    println("Sources:")
     entries.groupBy { it.sourceKey }.forEach { (source, list) ->
         println("  $source: ${list.size}")
     }
@@ -53,6 +69,9 @@ println("Sources:")
     println()
     println("Manga Storm Categories:")
 
+    /**
+     * Count how many manga will go into each Manga Storm category.
+     */
     val categoryCounts = entries.groupBy {
         BackupBuilder.mangaStormStatusLabel(it.status)
     }
@@ -61,8 +80,25 @@ println("Sources:")
         println("  $category: ${categoryCounts[category]?.size ?: 0}")
     }
 
+    val uncategorizedCount = categoryCounts["Uncategorized"]?.size ?: 0
+    if (uncategorizedCount > 0) {
+        println("  Uncategorized: $uncategorizedCount")
+    }
+
+    println()
+    println("App Settings:")
+    println("  Enable delegated sources: false")
+    println("  Metadata fetch: ${if (fetchMetadata) "enabled" else "skipped"}")
+
+    /**
+     * Duplicate detection does not require metadata.
+     * It uses the MangaDex UUID from the .msbf URL.
+     */
     writeDuplicateReport(entries)
 
+    /**
+     * Fetch MangaDex metadata unless --no-metadata was provided.
+     */
     val metadataByUuid = if (fetchMetadata) {
         fetchMangaDexMetadata(entries)
     } else {
@@ -71,6 +107,9 @@ println("Sources:")
         emptyMap()
     }
 
+    /**
+     * Build the backup object and write it as a .tachibk file.
+     */
     val backup = BackupBuilder.build(entries, metadataByUuid)
 
     println()
@@ -106,6 +145,12 @@ println("Sources:")
     println(outputFile.absolutePath)
 }
 
+/**
+ * Fetch metadata from the MangaDex API for every unique MangaDex UUID.
+ *
+ * Duplicate manga are detected here too so the user can see them while metadata
+ * is being fetched.
+ */
 private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDexMetadata> {
     println()
     println("Fetching MangaDex metadata...")
@@ -113,8 +158,16 @@ private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDe
     val metadataByUuid = mutableMapOf<String, MangaDexMetadata>()
     val missingMetadataLinks = linkedMapOf<String, String>()
     val failedConnectionLinks = linkedMapOf<String, String>()
+
+    /**
+     * Prevent duplicate API calls.
+     * If the same UUID appears twice, only fetch metadata once.
+     */
     val checkedUuids = mutableSetOf<String>()
 
+    /**
+     * Used to print duplicate notices during metadata fetching.
+     */
     val firstSeenByUuid = linkedMapOf<String, Pair<Int, MsbfEntry>>()
     val duplicatesFoundDuringFetch = mutableListOf<String>()
 
@@ -147,6 +200,9 @@ private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDe
                 println()
             }
 
+            /**
+             * Fetch metadata only once per unique MangaDex UUID.
+             */
             if (checkedUuids.add(uuid)) {
                 when (val result = MangaDexClient.fetchDetailed(uuid)) {
                     is MangaDexFetchResult.Success -> {
@@ -162,10 +218,16 @@ private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDe
                     }
                 }
 
+                /**
+                 * Small delay to avoid hitting MangaDex too aggressively.
+                 */
                 Thread.sleep(250)
             }
         }
 
+        /**
+         * Print progress every 25 entries.
+         */
         if (entryNumber % 25 == 0) {
             println(
                 "  Checked $entryNumber/${entries.size} entries, " +
@@ -192,12 +254,9 @@ private fun fetchMangaDexMetadata(entries: List<MsbfEntry>): Map<String, MangaDe
     return metadataByUuid
 }
 
-private fun askYesNo(prompt: String): Boolean {
-    print(prompt)
-    val answer = readlnOrNull()?.trim()?.lowercase()
-    return answer == "y" || answer == "yes"
-}
-
+/**
+ * Summary data returned by duplicate detection.
+ */
 private data class DuplicateStats(
     val duplicateGroups: Int,
     val duplicateEntries: Int,
@@ -205,6 +264,11 @@ private data class DuplicateStats(
     val reportPath: String?,
 )
 
+/**
+ * Find duplicate MangaDex entries by UUID and write a duplicate report file.
+ *
+ * Duplicate detection works even when metadata fetching is skipped.
+ */
 private fun writeDuplicateReport(entries: List<MsbfEntry>): DuplicateStats {
     val duplicateGroups = entries
         .mapIndexed { index, entry -> index + 1 to entry }
@@ -238,6 +302,9 @@ private fun writeDuplicateReport(entries: List<MsbfEntry>): DuplicateStats {
     val duplicateEntryCount = duplicateGroups.values.sumOf { it.size }
     val extraDuplicateCount = duplicateGroups.values.sumOf { it.size - 1 }
 
+    /**
+     * Write the full duplicate report to a text file.
+     */
     reportFile.writeText(
         buildString {
             appendLine("MSBF-to-TachiBK Duplicate Manga Report")
@@ -298,6 +365,9 @@ private fun writeDuplicateReport(entries: List<MsbfEntry>): DuplicateStats {
     )
 }
 
+/**
+ * Write a URL report file for missing metadata or connection failures.
+ */
 private fun writeLinkReport(
     fileName: String,
     title: String,
@@ -325,6 +395,9 @@ private fun writeLinkReport(
     )
 }
 
+/**
+ * Convert Komikku/Tachiyomi numeric manga status values into readable labels.
+ */
 private fun statusLabel(status: Int): String {
     return when (status) {
         1 -> "Ongoing"
