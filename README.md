@@ -30,7 +30,7 @@ The project is currently focused on **MangaDex support** and reliable Komikku re
 Current milestone:
 
 ```text
-v0.6.x — Better CLI options and safer restore guidance
+v0.7.x — Pre-conversion validation
 ```
 
 The converter currently works for MangaDex entries and can generate Komikku-readable `.tachibk` backups.
@@ -276,8 +276,8 @@ More project documentation:
 | 5 | Manga Storm status categories | ✅ Done |
 | 6 | Metadata fetched by default | ✅ Done |
 | 7 | Documentation and restore guide | ✅ Done |
-| 8 | Better CLI options | 🚧 Current |
-| 9 | Pre-conversion validation | Planned |
+| 8 | Better CLI options | ✅ Done |
+| 9 | Pre-conversion validation | 🚧 Current |
 | 10 | Optional duplicate handling | Planned |
 | 11 | Full compatibility test | Planned |
 | 12 | V1 release cleanup | Planned |
@@ -337,6 +337,8 @@ Possible post-V1 features:
 - Better source mapping
 - Chapter import if Manga Storm data supports it
 - Reading history import if Manga Storm data supports it
+- Validate input files, output paths, sources, and MangaDex URLs before writing a backup
+- Stop safely with clear errors when validation fails
 
 ---
 

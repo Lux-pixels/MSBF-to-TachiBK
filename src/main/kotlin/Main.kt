@@ -6,6 +6,8 @@ import metadata.MangaDexFetchResult
 import metadata.MangaDexMetadata
 import parser.MsbfEntry
 import parser.MsbfParser
+import validation.ConversionValidator
+import validation.ValidationResult
 import java.io.File
 
 /**
@@ -13,6 +15,7 @@ import java.io.File
  *
  * This program:
  * - Reads a Manga Storm .msbf file
+ * - Validates the conversion before writing a backup
  * - Detects duplicate manga
  * - Fetches MangaDex metadata by default
  * - Builds a Komikku/Tachiyomi .tachibk backup
@@ -60,28 +63,71 @@ fun main(args: Array<String>) {
      */
     val outputFile = options.outputFile ?: File("MSBF-to-TachiBK.tachibk")
 
-    if (!inputFile.exists()) {
-        println("Error: File not found: ${inputFile.absolutePath}")
+    /**
+     * Validate input/output files before parsing.
+     *
+     * This catches missing files, wrong extensions, empty files, and output
+     * folder problems before the converter does any real work.
+     */
+    val fileValidation = ConversionValidator.validateFiles(
+        inputFile = inputFile,
+        outputFile = outputFile,
+    )
+
+    if (!fileValidation.isValid) {
+        ConversionValidator.printSummary(
+            inputFile = inputFile,
+            outputFile = outputFile,
+            entries = emptyList(),
+            result = fileValidation,
+        )
+
+        println()
+        println("No backup was written.")
         return
     }
 
     /**
-     * Create the output folder automatically.
+     * Parse the Manga Storm .msbf file.
      *
-     * Example:
-     * testdata/v0.6/output.tachibk
-     *
-     * If testdata/v0.6 does not exist, it will be created.
+     * If parsing fails, show a clean validation-style error instead of a stacktrace.
      */
-    outputFile.parentFile?.let { parent ->
-        if (!parent.exists()) {
-            val created = parent.mkdirs()
+    val entries = runCatching {
+        MsbfParser.parse(inputFile)
+    }.getOrElse { error ->
+        val parseValidation = ValidationResult(
+            errors = listOf("Could not parse input file: ${error.message ?: error::class.simpleName}")
+        )
 
-            if (!created) {
-                println("Error: Could not create output folder: ${parent.absolutePath}")
-                return
-            }
-        }
+        ConversionValidator.printSummary(
+            inputFile = inputFile,
+            outputFile = outputFile,
+            entries = emptyList(),
+            result = parseValidation,
+        )
+
+        println()
+        println("No backup was written.")
+        return
+    }
+
+    /**
+     * Validate parsed entries before metadata fetching and backup writing.
+     */
+    val entryValidation = ConversionValidator.validateEntries(entries)
+    val validationResult = fileValidation + entryValidation
+
+    ConversionValidator.printSummary(
+        inputFile = inputFile,
+        outputFile = outputFile,
+        entries = entries,
+        result = validationResult,
+    )
+
+    if (!validationResult.isValid) {
+        println()
+        println("No backup was written.")
+        return
     }
 
     /**
@@ -89,8 +135,6 @@ fun main(args: Array<String>) {
      * when MangaDex metadata is included in the backup.
      */
     val fetchMetadata = options.fetchMetadata
-
-    val entries = MsbfParser.parse(inputFile)
 
     println()
     println("Manga Backup Status Summary")
