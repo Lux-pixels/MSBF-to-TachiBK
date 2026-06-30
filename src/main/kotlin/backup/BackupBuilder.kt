@@ -5,9 +5,9 @@ import models.*
 import parser.MsbfEntry
 
 object BackupBuilder {
-    private const val READING_CATEGORY_ID = 1L
-    private const val FOLLOWING_CATEGORY_ID = 2L
-    private const val ON_HOLD_CATEGORY_ID = 3L
+    private const val READING_CATEGORY_ORDER = 0L
+    private const val FOLLOWING_CATEGORY_ORDER = 1L
+    private const val ON_HOLD_CATEGORY_ORDER = 2L
 
     fun build(
         entries: List<MsbfEntry>,
@@ -29,7 +29,7 @@ object BackupBuilder {
                 thumbnailUrl = meta?.coverUrl,
                 dateAdded = System.currentTimeMillis(),
                 favorite = true,
-                categories = categoryIdsForMangaStormStatus(entry.status),
+                categories = categoryOrdersForMangaStormStatus(entry.status),
                 initialized = false
             )
         }
@@ -68,11 +68,11 @@ object BackupBuilder {
         }
     }
 
-    private fun categoryIdsForMangaStormStatus(status: String?): List<Long> {
+    private fun categoryOrdersForMangaStormStatus(status: String?): List<Long> {
         return when (status?.trim()?.uppercase()) {
-            "R" -> listOf(READING_CATEGORY_ID)
-            "Y" -> listOf(FOLLOWING_CATEGORY_ID)
-            "A" -> listOf(ON_HOLD_CATEGORY_ID)
+            "R" -> listOf(READING_CATEGORY_ORDER)
+            "Y" -> listOf(FOLLOWING_CATEGORY_ORDER)
+            "A" -> listOf(ON_HOLD_CATEGORY_ORDER)
             else -> emptyList()
         }
     }
@@ -81,18 +81,18 @@ object BackupBuilder {
         return listOf(
             BackupCategory(
                 name = "Reading",
-                order = 0,
-                id = READING_CATEGORY_ID
+                order = READING_CATEGORY_ORDER,
+                id = READING_CATEGORY_ORDER
             ),
             BackupCategory(
                 name = "Following",
-                order = 1,
-                id = FOLLOWING_CATEGORY_ID
+                order = FOLLOWING_CATEGORY_ORDER,
+                id = FOLLOWING_CATEGORY_ORDER
             ),
             BackupCategory(
                 name = "On Hold",
-                order = 2,
-                id = ON_HOLD_CATEGORY_ID
+                order = ON_HOLD_CATEGORY_ORDER,
+                id = ON_HOLD_CATEGORY_ORDER
             ),
         )
     }
