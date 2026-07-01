@@ -73,6 +73,22 @@ http://localhost:8080
 
 Leave the command window open while converting.
 
+### Windows Smart App Control Note
+
+If Windows Smart App Control blocks `run-web-converter.bat`, unblock the downloaded ZIP before extracting it:
+
+```text
+1. Delete the extracted MSBF-to-TachiBK folder.
+2. Right-click MSBF-to-TachiBK-v1.0.0.zip.
+3. Click Properties.
+4. Check Unblock if you see it.
+5. Click Apply.
+6. Extract the ZIP again.
+7. Double-click run-web-converter.bat again.
+```
+
+This happens because Windows may block unknown downloaded script files after extraction.
+
 ### macOS / Linux
 
 Open a terminal in the unzipped folder and run:

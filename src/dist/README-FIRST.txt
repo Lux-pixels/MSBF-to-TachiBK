@@ -30,6 +30,20 @@ Windows
 4. Upload your favorites.msbf file.
 5. Download the generated .tachibk file.
 
+Windows Smart App Control Note
+------------------------------
+If Windows Smart App Control blocks run-web-converter.bat, unblock the downloaded ZIP before extracting it:
+
+1. Delete the extracted MSBF-to-TachiBK folder.
+2. Right-click MSBF-to-TachiBK-v1.0.0.zip.
+3. Click Properties.
+4. Check Unblock if you see it.
+5. Click Apply.
+6. Extract the ZIP again.
+7. Double-click run-web-converter.bat again.
+
+This happens because Windows may block unknown downloaded script files after extraction.
+
 macOS / Linux
 -------------
 1. Unzip the release package.

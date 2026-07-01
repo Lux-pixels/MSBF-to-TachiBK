@@ -1,199 +1,420 @@
 # Troubleshooting
 
-Common issues and fixes for **MSBF-to-TachiBK**.
+Troubleshooting guide for **MSBF-to-TachiBK**.
 
 ---
 
-## Java Version Error
+## Windows Smart App Control Blocks the App
 
-If the build fails with an error involving a Java version like:
+Windows may block `run-web-converter.bat` after downloading the release ZIP.
+
+If you see a message like:
 
 ```text
-25.0.2
+Smart App Control has blocked an app with a dangerous file extension
 ```
 
-Use Java 17.
+Use this fix:
 
-Check your version:
+```text
+1. Delete the extracted MSBF-to-TachiBK folder.
+2. Right-click MSBF-to-TachiBK-v1.0.0.zip.
+3. Click Properties.
+4. Check Unblock if you see it.
+5. Click Apply.
+6. Extract the ZIP again.
+7. Double-click run-web-converter.bat again.
+```
+
+This happens because Windows may mark files from the internet as blocked. Unblocking the ZIP before extraction allows the launcher file to run normally.
+
+---
+
+## The Web Page Does Not Open
+
+The local web converter runs at:
+
+```text
+http://localhost:8080
+```
+
+Make sure:
+
+```text
+The command window is still open
+The converter says it started successfully
+You are opening http://localhost:8080
+Another app is not already using port 8080
+```
+
+If the terminal was closed, start the converter again.
+
+Windows:
+
+```text
+Double-click run-web-converter.bat
+```
+
+macOS / Linux:
+
+```bash
+./run-web-converter.sh
+```
+
+Developers running from source:
+
+```bash
+./gradlew run --args="serve"
+```
+
+---
+
+## The Converter Window Opens and Immediately Closes
+
+This usually means Java is missing or the release package was not fully extracted.
+
+Check Java:
 
 ```bash
 java -version
 ```
 
-Expected:
+You need:
 
 ```text
-openjdk version "17.x"
+Java 17 or newer
 ```
 
-In GitHub Codespaces, you may need to switch to Java 17 before building.
+Also make sure the release ZIP was fully extracted before running the launcher.
+
+The unzipped folder should include:
+
+```text
+README-FIRST.txt
+run-web-converter.bat
+run-web-converter.sh
+bin/
+lib/
+```
 
 ---
 
-## Help Command
+## Java Is Not Installed
 
-To show CLI help:
+Install Java 17 or newer.
+
+After installing Java, open a new terminal or command window and run:
 
 ```bash
-./gradlew run --args="--help"
+java -version
+```
+
+Then try the converter again.
+
+---
+
+## Upload Does Not Work
+
+Make sure the file is a Manga Storm `.msbf` favorites export.
+
+The file should end with:
+
+```text
+.msbf
+```
+
+If the file is zipped or renamed, extract or rename it first.
+
+---
+
+## Conversion Is Slow
+
+Metadata fetching can be slow for large libraries.
+
+For fastest conversion:
+
+```text
+Leave Fetch MangaDex metadata unchecked
+```
+
+Metadata is off by default in V1.
+
+Enable metadata only if you want extra information like:
+
+```text
+Covers
+Authors
+Artists
+Descriptions
+Genres
+Manga status
 ```
 
 ---
 
-## Version Command
+## The Browser Shows Conversion Running for a Long Time
 
-To show the current converter version:
+Large files can take time, especially with metadata enabled.
+
+Try again with metadata unchecked.
+
+If the browser still waits too long:
+
+```text
+Stop the converter
+Restart it
+Run the conversion again with metadata unchecked
+```
+
+---
+
+## Duplicate Manga Are Found
+
+This is normal if the Manga Storm export contains the same MangaDex title more than once.
+
+Default behavior:
+
+```text
+Duplicates are reported but kept
+```
+
+The local web page will offer a duplicate report download when duplicates are found.
+
+You can choose to remove duplicates by checking:
+
+```text
+Remove duplicate MangaDex entries
+```
+
+This keeps the first copy and removes later duplicate copies.
+
+---
+
+## The Duplicate Report Is Missing
+
+A duplicate report is only available when duplicate MangaDex entries are found.
+
+If there are no duplicates, the duplicate report download button will not appear.
+
+---
+
+## Manga Restore Works but Entries Open as WebView / 404
+
+If restored MangaDex entries open as a WebView or website 404 page, manually disable delegated sources in Komikku.
+
+Recommended restore behavior:
+
+```text
+Check:
+- Manga
+- Categories
+
+Uncheck:
+- App Settings
+- Saved Searches
+- Source Settings
+- Extension Repos
+```
+
+Then disable delegated sources in Komikku:
+
+```text
+Komikku settings → Advanced / Developer tools → Disable Enable delegated sources
+```
+
+---
+
+## Manga Are Restored Without Covers or Descriptions
+
+Metadata fetching may have been skipped.
+
+V1 defaults to:
+
+```text
+Metadata fetch: skipped
+```
+
+To include more metadata, enable:
+
+```text
+Fetch MangaDex metadata
+```
+
+Metadata can add:
+
+```text
+Covers
+Authors
+Artists
+Descriptions
+Genres
+Manga status
+```
+
+Metadata depends on MangaDex API availability.
+
+---
+
+## Some Metadata Is Missing
+
+Some MangaDex entries may be removed, unavailable, rate-limited, or temporarily unreachable.
+
+The converter may generate:
+
+```text
+missing-metadata-links.txt
+failed-connection-links.txt
+```
+
+These report files help identify metadata issues.
+
+---
+
+## Generated Files Should Not Be Committed
+
+Do not commit personal backup or report files.
+
+Avoid committing:
+
+```text
+*.msbf
+*.tachibk
+*.proto.gz
+duplicate-manga-report.txt
+missing-metadata-links.txt
+failed-connection-links.txt
+build/
+```
+
+---
+
+## Developer: Build Fails
+
+Run:
+
+```bash
+./gradlew clean build
+```
+
+If build fails, check the first Kotlin error.
+
+A common issue is accidentally pasting HTML into a Kotlin file or only partially replacing a file.
+
+If `WebRoutes.kt` fails with many errors like unresolved references or `<!doctype html>` appearing in Kotlin errors, replace the entire file again instead of patching small sections.
+
+---
+
+## Developer: Version Still Shows Old Number
+
+Run:
 
 ```bash
 ./gradlew run --args="--version"
 ```
 
-Expected during Commit 8:
+Expected:
 
 ```text
-MSBF-to-TachiBK 0.6.0
+MSBF-to-TachiBK 1.0.0
+```
+
+If it still shows an older version, check:
+
+```text
+src/main/kotlin/config/Constants.kt
 ```
 
 ---
 
-## Backup File Not Found in Komikku
+## Developer: Build Release ZIP
 
-If Komikku cannot open the `.tachibk` file, especially in BlueStacks:
-
-1. Copy the `.tachibk` file into Android’s **Downloads** folder.
-2. Restore from Downloads inside Komikku.
-3. Avoid restoring directly from the BlueStacks shared folder.
-
----
-
-## MangaDex Opens a WebView / 404 Page
-
-If restored MangaDex entries open a website/WebView 404 page:
-
-1. Make sure the MangaDex extension is installed.
-2. Do **not** restore App Settings.
-3. Manually disable delegated sources in Komikku.
-4. Reopen Komikku and test the manga again.
-
-Look for:
-
-```text
-Komikku settings → Advanced / Developer tools → Enable delegated sources
-```
-
-Make sure delegated sources are disabled.
-
----
-
-## Manga Entries Restore but Metadata Is Missing
-
-Metadata is fetched by default.
-
-Run without `--no-metadata`:
+Build the downloadable release ZIP:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/MSBF-to-TachiBK-v0.6test.tachibk"
+./gradlew clean build
+./gradlew distZip
 ```
 
-Do not use this unless doing a quick test:
+The output should appear in:
 
-```bash
---no-metadata
+```text
+build/distributions/
+```
+
+Expected files:
+
+```text
+MSBF-to-TachiBK.zip
+MSBF-to-TachiBK.tar
 ```
 
 ---
 
-## Categories Do Not Restore
+## Developer: Test the Release ZIP Locally
 
-When restoring, make sure **Categories** is checked.
+```bash
+rm -rf build/test-release
+mkdir -p build/test-release
+unzip build/distributions/MSBF-to-TachiBK.zip -d build/test-release
+find build/test-release -maxdepth 3 -type f | sort
+```
 
-Recommended restore options:
+Then test:
+
+```bash
+cd build/test-release/MSBF-to-TachiBK
+chmod +x run-web-converter.sh
+./run-web-converter.sh
+```
+
+Open:
 
 ```text
+http://localhost:8080
+```
+
+---
+
+## Developer: GitHub Release Does Not Build
+
 Check:
-Manga
-Categories
 
-Uncheck:
-App Settings
-Saved Searches
-Source Settings
-Extension Repos
+```text
+GitHub repository → Actions → Build Release Package
+```
+
+If the release workflow fails because it cannot create a release, check:
+
+```text
+Repository Settings → Actions → General → Workflow permissions
+```
+
+Use:
+
+```text
+Read and write permissions
 ```
 
 ---
 
-## Output Folder Does Not Exist
+## Developer: Delete a Test Release Tag
 
-Commit 8 creates output folders automatically when possible.
-
-This should work:
+For a temporary test release tag like `v1.0.0-test`:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.6/test.tachibk"
+git push origin :refs/tags/v1.0.0-test
+git tag -d v1.0.0-test
 ```
 
-If folder creation fails, create it manually:
+Then delete the test release from GitHub Releases if needed.
+
+---
+
+## Developer: Create the Real V1 Release
 
 ```bash
-mkdir -p testdata/v0.6
+git tag -a v1.0.0 -m "Initial stable MSBF-to-TachiBK release"
+git push origin v1.0.0
 ```
 
----
-
-## Duplicate Manga
-
-The converter does not remove duplicates automatically.
-
-If duplicates are found, a report is created:
-
-```text
-duplicate-manga-report.txt
-```
-
-This report lists duplicate MangaDex UUIDs and the entries that share them.
-
----
-
-## Missing Metadata
-
-If MangaDex metadata cannot be found, a report may be created:
-
-```text
-missing-metadata-links.txt
-```
-
-This usually means:
-
-```text
-The MangaDex title no longer exists
-The URL is invalid
-The title was removed
-The MangaDex UUID could not be parsed
-```
-
----
-
-## MangaDex Connection Failures
-
-If MangaDex cannot be reached during metadata fetching, a report may be created:
-
-```text
-failed-connection-links.txt
-```
-
-Try running the converter again later.
-
----
-
-## Unsupported Source
-
-Currently supported source:
-
-```text
-MangaDex
-```
-
-If your Manga Storm backup includes another source, it may not convert yet.
-
-Future versions may add more source mappings.
+This triggers the GitHub release workflow and uploads the downloadable ZIP.

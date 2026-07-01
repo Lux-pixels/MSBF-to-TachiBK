@@ -6,50 +6,105 @@ Release notes for **MSBF-to-TachiBK**.
 
 ## v1.0.0 — Initial Stable Release
 
-**MSBF-to-TachiBK v1.0.0** is the first stable command-line release.
+**MSBF-to-TachiBK v1.0.0** is the first stable release.
 
-This release focuses on converting Manga Storm `.msbf` favorites exports containing MangaDex entries into Komikku / Tachiyomi-style `.tachibk` backups.
+This release adds a downloadable local web converter package for GitHub Releases.
+
+Users can download the release ZIP, unzip it, run the local converter, upload their Manga Storm `favorites.msbf` file, and download a generated Komikku / Tachiyomi-style `.tachibk` backup.
+
+---
+
+## Main V1 Workflow
+
+```text
+Download MSBF-to-TachiBK-v1.0.0.zip
+Unzip it
+Run the local web converter
+Open http://localhost:8080
+Upload favorites.msbf
+Download favorites.tachibk
+Restore in Komikku
+```
+
+Nothing is uploaded to the internet. The converter runs locally on the user’s computer.
+
+---
+
+## Included Launchers
+
+The release ZIP includes:
+
+```text
+README-FIRST.txt
+run-web-converter.bat
+run-web-converter.sh
+bin/MSBF-to-TachiBK
+bin/MSBF-to-TachiBK.bat
+```
+
+Windows users can double-click:
+
+```text
+run-web-converter.bat
+```
+
+macOS and Linux users can run:
+
+```bash
+chmod +x run-web-converter.sh
+./run-web-converter.sh
+```
+
+---
+
+## Windows Smart App Control Note
+
+If Windows Smart App Control blocks `run-web-converter.bat`, unblock the downloaded ZIP before extracting it:
+
+```text
+1. Delete the extracted MSBF-to-TachiBK folder.
+2. Right-click MSBF-to-TachiBK-v1.0.0.zip.
+3. Click Properties.
+4. Check Unblock if you see it.
+5. Click Apply.
+6. Extract the ZIP again.
+7. Double-click run-web-converter.bat again.
+```
+
+This happens because Windows may block unknown downloaded script files after extraction.
 
 ---
 
 ## What Works
 
-v1.0.0 supports:
+V1 supports:
 
 ```text
 Manga Storm .msbf input
-MangaDex entries
+MangaDex favorites
+Local browser upload/download conversion
 Komikku-readable .tachibk output
 Manga restore
 Category restore
-MangaDex metadata fetching
+Optional MangaDex metadata fetching
 Duplicate reporting
 Optional duplicate removal
-Duplicate report-only mode
-Missing metadata reporting
-Failed connection reporting
+Duplicate report download from the web page
 Pre-conversion validation
-Clear restore instructions
-Safe default behavior
+GitHub downloadable ZIP package
 ```
 
 ---
 
 ## Supported Source
 
-Currently supported:
-
 | Source | Manga Storm Key | Komikku / Tachiyomi Source ID |
 |---|---:|---:|
 | MangaDex | `z13mangadex` | `2499283573021220255` |
 
-More sources may be added after V1.
-
 ---
 
 ## Category Mapping
-
-Manga Storm status flags are mapped as:
 
 | Manga Storm Flag | Komikku Category |
 |---|---|
@@ -61,37 +116,48 @@ Unknown values are left uncategorized.
 
 ---
 
-## CLI Examples
+## Metadata Behavior
 
-Recommended conversion:
+Metadata fetching is **off by default** in V1.
+
+This keeps large backups faster and helps avoid long waits.
+
+Users can enable metadata fetching from the local web page or by passing:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v1.0/MSBF-to-TachiBK-v1.0.tachibk"
+--metadata
 ```
 
-Quick test without metadata:
+Metadata mode can add:
 
-```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v1.0/quick-test.tachibk --no-metadata"
+```text
+Covers
+Authors
+Artists
+Descriptions
+Genres
+Manga status
 ```
 
-Duplicate report only:
+---
+
+## Duplicate Behavior
+
+Duplicates are kept by default.
+
+The converter reports duplicate MangaDex entries and lets users download the duplicate report from the local web page when duplicates are found.
+
+Users can remove duplicate MangaDex entries by enabling duplicate removal in the local web page or by passing:
 
 ```bash
-./gradlew run --args="convert samples/testfavorites.msbf --report-duplicates-only"
-```
-
-Remove duplicates:
-
-```bash
-./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v1.0/deduped.tachibk --remove-duplicates"
+--remove-duplicates
 ```
 
 ---
 
 ## Recommended Komikku Restore Options
 
-When restoring the generated backup, check:
+When restoring the generated `.tachibk` file, check:
 
 ```text
 Manga
@@ -107,13 +173,13 @@ Source Settings
 Extension Repos
 ```
 
-Manually disable delegated sources in Komikku if MangaDex entries open as a WebView / website 404 page.
+If MangaDex entries open as a WebView / website 404 page, manually disable delegated sources in Komikku.
 
 ---
 
 ## Known Limitations
 
-v1.0.0 does not restore:
+V1 does not restore:
 
 ```text
 Chapters
@@ -126,51 +192,45 @@ Source settings
 Extension repos
 ```
 
-v1.0.0 also does not include:
+V1 also does not include:
 
 ```text
-Desktop app
-Native Windows package
-Native macOS package
+Native Windows installer
+Native macOS app bundle
 Native Linux package
+No-Java standalone executable
 Additional Manga Storm sources
 ```
 
-These are planned for future releases.
+Those can be added after V1.
 
 ---
 
-## Safety Notes
+## Build Artifact
 
-The converter keeps duplicates by default.
+The GitHub release workflow builds and publishes:
 
-Users must explicitly choose duplicate removal with:
+```text
+MSBF-to-TachiBK-v1.0.0.zip
+```
+
+Local development can build the same style of package with:
 
 ```bash
---remove-duplicates
+./gradlew distZip
 ```
 
-Personal backup files should not be committed:
+The output appears in:
 
 ```text
-*.msbf
-*.tachibk
-*.proto.gz
-```
-
-Generated reports should also not be committed:
-
-```text
-duplicate-manga-report.txt
-missing-metadata-links.txt
-failed-connection-links.txt
+build/distributions/
 ```
 
 ---
 
-## Tag
+## V1 Tag
 
 ```bash
-git tag -a v1.0.0 -m "Initial stable MSBF to TachiBK converter"
+git tag -a v1.0.0 -m "Initial stable MSBF-to-TachiBK release"
 git push origin v1.0.0
 ```
