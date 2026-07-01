@@ -4,17 +4,18 @@ package config
  * Shared project constants.
  *
  * Keep app-level names, versions, and source mappings here so they are easy
- * to update as the project grows toward V1.
+ * to update as the project grows after V1.
  */
 object Constants {
     const val APP_NAME = "MSBF-to-TachiBK"
 
     /**
-     * Commit 13 development version.
+     * First stable release.
      *
-     * v0.11.0 = local browser upload/download converter.
+     * v1.0.0 = local browser upload/download converter for Manga Storm
+     * MangaDex favorites exports.
      */
-    const val VERSION = "0.11.0"
+    const val VERSION = "1.0.0"
 
     /**
      * Manga Storm source key for MangaDex.

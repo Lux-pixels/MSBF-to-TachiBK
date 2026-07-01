@@ -1,0 +1,44 @@
+name: Build Release Package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build downloadable release ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build and test
+        run: ./gradlew clean build
+
+      - name: Build distribution ZIP
+        run: ./gradlew distZip
+
+      - name: Rename release ZIP
+        run: |
+          mkdir -p release
+          cp build/distributions/*.zip release/MSBF-to-TachiBK-${{ github.ref_name }}.zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/MSBF-to-TachiBK-${{ github.ref_name }}.zip
+          generate_release_notes: true
