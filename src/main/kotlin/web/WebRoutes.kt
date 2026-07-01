@@ -16,11 +16,12 @@ import kotlin.concurrent.thread
  * HTTP routes for the local browser converter.
  *
  * Routes:
- * - GET  /                    Browser upload page
- * - GET  /style.css           Page styling
- * - POST /api/convert         Start conversion job
- * - GET  /api/status/{id}     Read live conversion status/logs
- * - GET  /download/{id}       Download generated .tachibk file
+ * - GET  /                         Browser upload page
+ * - GET  /style.css                Page styling
+ * - POST /api/convert              Start conversion job
+ * - GET  /api/status/{id}          Read live conversion status
+ * - GET  /download/{id}            Download generated .tachibk file
+ * - GET  /download-duplicates/{id} Download duplicate report, if available
  */
 class WebRoutes {
     private val conversionFolder = File("build/web-conversions")
@@ -51,8 +52,12 @@ class WebRoutes {
                 handleStatus(exchange)
             }
 
+            method.equals("GET", ignoreCase = true) && path.startsWith("/download-duplicates/") -> {
+                handleDuplicateReportDownload(exchange)
+            }
+
             method.equals("GET", ignoreCase = true) && path.startsWith("/download/") -> {
-                handleDownload(exchange)
+                handleBackupDownload(exchange)
             }
 
             else -> {
@@ -61,12 +66,6 @@ class WebRoutes {
         }
     }
 
-    /**
-     * Start a conversion job and return immediately.
-     *
-     * This prevents the browser/Codespaces forwarded port from timing out
-     * during large conversions.
-     */
     private fun handleStartConversion(exchange: HttpExchange) {
         val contentType = exchange.requestHeaders.getFirst("Content-Type").orEmpty()
 
@@ -106,7 +105,7 @@ class WebRoutes {
 
         val inputFile = File(conversionFolder, "$runId-$originalName")
         val outputFile = File(conversionFolder, "$runId-$baseName.tachibk")
-        val downloadName = "$baseName.tachibk"
+        val duplicateReportFile = File(conversionFolder, "$runId-duplicate-manga-report.txt")
 
         inputFile.writeBytes(upload.bytes)
 
@@ -117,7 +116,9 @@ class WebRoutes {
             id = runId,
             inputFile = inputFile,
             outputFile = outputFile,
-            downloadName = downloadName,
+            backupDownloadName = "$baseName.tachibk",
+            duplicateReportFile = duplicateReportFile,
+            duplicateReportDownloadName = "duplicate-manga-report.txt",
             fetchMetadata = fetchMetadata,
             removeDuplicates = removeDuplicates,
         )
@@ -128,9 +129,6 @@ class WebRoutes {
         sendJson(exchange, 200, """{"jobId":"$runId"}""")
     }
 
-    /**
-     * Run conversion in the background so the browser can poll live logs.
-     */
     private fun startJob(job: ConversionJob) {
         thread(
             start = true,
@@ -139,12 +137,11 @@ class WebRoutes {
         ) {
             job.state = JobState.RUNNING
 
+            val sharedDuplicateReport = File("duplicate-manga-report.txt")
+            sharedDuplicateReport.delete()
+            job.duplicateReportFile.delete()
+
             job.addLog("Starting web conversion job...")
-            job.addLog("Input file: ${job.inputFile.name}")
-            job.addLog("Output file: ${job.downloadName}")
-            job.addLog("Metadata fetch: ${if (job.fetchMetadata) "enabled" else "skipped"}")
-            job.addLog("Duplicate handling: ${if (job.removeDuplicates) "remove duplicates" else "keep duplicates"}")
-            job.addLog("")
 
             val conversionRun = runCatching {
                 ConverterService.convert(
@@ -165,11 +162,15 @@ class WebRoutes {
             conversionRun.onSuccess { conversionResult ->
                 job.result = conversionResult
 
+                if (sharedDuplicateReport.exists() && sharedDuplicateReport.length() > 0) {
+                    sharedDuplicateReport.copyTo(job.duplicateReportFile, overwrite = true)
+                }
+
                 if (conversionResult.success && conversionResult.backupWritten && job.outputFile.exists()) {
                     job.state = JobState.COMPLETED
                     job.addLog("")
                     job.addLog("Web conversion complete.")
-                    job.addLog("Download ready: ${job.downloadName}")
+                    job.addLog("Download ready: ${job.backupDownloadName}")
                 } else {
                     job.state = JobState.FAILED
                     job.addLog("")
@@ -187,9 +188,6 @@ class WebRoutes {
         }
     }
 
-    /**
-     * Return live job status and logs as JSON.
-     */
     private fun handleStatus(exchange: HttpExchange) {
         val id = exchange.requestURI.path.removePrefix("/api/status/")
         val job = jobs[id]
@@ -199,22 +197,55 @@ class WebRoutes {
             return
         }
 
+        val logs = job.snapshotLogs()
         val result = job.result
 
-        val downloadUrl = if (job.state == JobState.COMPLETED) {
+        val mangaIdentified = parseLogNumber(logs, "Total Manga Identified:")
+            ?: result?.entriesParsed
+            ?: 0
+
+        val mangaIncluded = parseLogNumber(logs, "Manga Included In Backup:")
+            ?: result?.entriesWritten
+            ?: 0
+
+        val mangaDuplicates = parseLogNumber(logs, "Extra duplicate copies:")
+            ?: 0
+
+        val progressText = parseProgressText(
+            logs = logs,
+            mangaIdentified = mangaIdentified,
+            mangaIncluded = mangaIncluded,
+            fetchMetadata = job.fetchMetadata,
+            state = job.state,
+        )
+
+        val mangadexSourceCount = parseLogNumber(logs, "z13mangadex:")
+            ?: 0
+
+        val readingCount = parseLogNumber(logs, "Reading:")
+            ?: 0
+
+        val followingCount = parseLogNumber(logs, "Following:")
+            ?: 0
+
+        val onHoldCount = parseLogNumber(logs, "On Hold:")
+            ?: 0
+
+        val backupDownloadUrl = if (job.state == JobState.COMPLETED) {
             "/download/${job.id}"
         } else {
             null
         }
 
-        val logsJson = job.snapshotLogs()
-            .joinToString(
-                separator = ",",
-                prefix = "[",
-                postfix = "]",
-            ) { line ->
-                jsonString(line)
-            }
+        val duplicateReportUrl = if (
+            job.state == JobState.COMPLETED &&
+            job.duplicateReportFile.exists() &&
+            job.duplicateReportFile.length() > 0
+        ) {
+            "/download-duplicates/${job.id}"
+        } else {
+            null
+        }
 
         val json = buildString {
             append("{")
@@ -226,24 +257,52 @@ class WebRoutes {
             append(jsonString(job.state.name.lowercase()))
             append(",")
 
-            append("\"downloadUrl\":")
-            append(downloadUrl?.let { jsonString(it) } ?: "null")
+            append("\"backupDownloadUrl\":")
+            append(backupDownloadUrl?.let { jsonString(it) } ?: "null")
             append(",")
 
-            append("\"downloadName\":")
-            append(jsonString(job.downloadName))
+            append("\"backupDownloadName\":")
+            append(jsonString(job.backupDownloadName))
             append(",")
 
-            append("\"entriesParsed\":")
-            append(result?.entriesParsed ?: 0)
+            append("\"duplicateReportUrl\":")
+            append(duplicateReportUrl?.let { jsonString(it) } ?: "null")
             append(",")
 
-            append("\"entriesWritten\":")
-            append(result?.entriesWritten ?: 0)
+            append("\"duplicateReportDownloadName\":")
+            append(jsonString(job.duplicateReportDownloadName))
             append(",")
 
-            append("\"logs\":")
-            append(logsJson)
+            append("\"progressText\":")
+            append(jsonString(progressText))
+            append(",")
+
+            append("\"mangaIdentified\":")
+            append(mangaIdentified)
+            append(",")
+
+            append("\"mangaIncluded\":")
+            append(mangaIncluded)
+            append(",")
+
+            append("\"mangaDuplicates\":")
+            append(mangaDuplicates)
+            append(",")
+
+            append("\"mangadexSourceCount\":")
+            append(mangadexSourceCount)
+            append(",")
+
+            append("\"readingCount\":")
+            append(readingCount)
+            append(",")
+
+            append("\"followingCount\":")
+            append(followingCount)
+            append(",")
+
+            append("\"onHoldCount\":")
+            append(onHoldCount)
 
             append("}")
         }
@@ -251,10 +310,7 @@ class WebRoutes {
         sendJson(exchange, 200, json)
     }
 
-    /**
-     * Download the generated .tachibk file.
-     */
-    private fun handleDownload(exchange: HttpExchange) {
+    private fun handleBackupDownload(exchange: HttpExchange) {
         val id = exchange.requestURI.path.removePrefix("/download/")
         val job = jobs[id]
 
@@ -263,18 +319,115 @@ class WebRoutes {
             return
         }
 
+        sendFile(
+            exchange = exchange,
+            file = job.outputFile,
+            downloadName = job.backupDownloadName,
+        )
+    }
+
+    private fun handleDuplicateReportDownload(exchange: HttpExchange) {
+        val id = exchange.requestURI.path.removePrefix("/download-duplicates/")
+        val job = jobs[id]
+
+        if (
+            job == null ||
+            job.state != JobState.COMPLETED ||
+            !job.duplicateReportFile.exists() ||
+            job.duplicateReportFile.length() == 0L
+        ) {
+            sendText(exchange, 404, "Duplicate report not found.")
+            return
+        }
+
+        sendFile(
+            exchange = exchange,
+            file = job.duplicateReportFile,
+            downloadName = job.duplicateReportDownloadName,
+        )
+    }
+
+    private fun sendFile(
+        exchange: HttpExchange,
+        file: File,
+        downloadName: String,
+    ) {
         exchange.responseHeaders.add("Content-Type", "application/octet-stream")
         exchange.responseHeaders.add(
             "Content-Disposition",
-            "attachment; filename=\"${job.downloadName}\"",
+            "attachment; filename=\"$downloadName\"",
         )
 
-        exchange.sendResponseHeaders(200, job.outputFile.length())
+        exchange.sendResponseHeaders(200, file.length())
 
-        job.outputFile.inputStream().use { input ->
+        file.inputStream().use { input ->
             exchange.responseBody.use { output ->
                 input.copyTo(output)
             }
+        }
+    }
+
+    private fun parseLogNumber(
+        logs: List<String>,
+        prefix: String,
+    ): Int? {
+        return logs
+            .lastOrNull { it.trim().startsWith(prefix) }
+            ?.substringAfter(prefix)
+            ?.trim()
+            ?.toIntOrNull()
+    }
+
+    private fun parseProgressText(
+        logs: List<String>,
+        mangaIdentified: Int,
+        mangaIncluded: Int,
+        fetchMetadata: Boolean,
+        state: JobState,
+    ): String {
+        val metadataProgressLine = logs.lastOrNull { line ->
+            line.contains("Checked ") &&
+                line.contains("/") &&
+                line.contains(" entries")
+        }
+
+        if (metadataProgressLine != null) {
+            val match = Regex("""Checked\s+(\d+)/(\d+)\s+entries""")
+                .find(metadataProgressLine)
+
+            if (match != null) {
+                return "${match.groupValues[1]}/${match.groupValues[2]}"
+            }
+        }
+
+        return when (state) {
+            JobState.QUEUED -> "Queued"
+
+            JobState.RUNNING -> {
+                if (fetchMetadata) {
+                    if (mangaIdentified > 0) {
+                        "Checking MangaDex metadata..."
+                    } else {
+                        "Starting metadata check..."
+                    }
+                } else {
+                    if (mangaIdentified > 0) {
+                        "Processing backup..."
+                    } else {
+                        "Starting conversion..."
+                    }
+                }
+            }
+
+            JobState.COMPLETED -> {
+                if (mangaIdentified > 0) {
+                    "$mangaIncluded/$mangaIdentified"
+                } else {
+                    "Complete"
+                }
+            }
+
+            JobState.FAILED -> "Failed"
         }
     }
 
@@ -423,7 +576,9 @@ class WebRoutes {
         val id: String,
         val inputFile: File,
         val outputFile: File,
-        val downloadName: String,
+        val backupDownloadName: String,
+        val duplicateReportFile: File,
+        val duplicateReportDownloadName: String,
         val fetchMetadata: Boolean,
         val removeDuplicates: Boolean,
         val logs: MutableList<String> = Collections.synchronizedList(mutableListOf()),

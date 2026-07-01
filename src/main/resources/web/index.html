@@ -49,6 +49,52 @@
         </form>
       </section>
 
+      <section id="statusCard" class="card status-card">
+        <div class="status-header">
+          <div>
+            <h2>Conversion Status</h2>
+            <p id="statusMessage">Waiting for a file.</p>
+          </div>
+
+          <span id="statusBadge" class="status-badge">Idle</span>
+        </div>
+
+        <pre id="summaryOutput" class="summary-output">Manga Backup Status Summary
+===========================
+Progress: Waiting
+Total Manga Identified: 0
+Manga Included In Backup: 0
+Manga Duplicates: 0
+
+Sources:
+  z13mangadex: 0
+
+Manga Storm Categories:
+  Reading: 0
+  Following: 0
+  On Hold: 0</pre>
+      </section>
+
+      <section id="resultCard" class="card result-card" hidden>
+        <h2>Conversion Results</h2>
+
+        <p id="resultMessage">Conversion is running.</p>
+
+        <div class="result-actions">
+          <a id="backupDownloadLink" class="button" href="#" hidden>
+            Download .tachibk
+          </a>
+
+          <div id="duplicateReportArea" class="duplicate-report-area" hidden>
+            <p>Duplicate manga were found. Do you also want to download the duplicate report?</p>
+
+            <a id="duplicateReportLink" class="button secondary-button" href="#">
+              Download duplicate report
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="notes">
         <h2>Restore reminder</h2>
         <p>In Komikku, restore with:</p>
@@ -70,53 +116,47 @@ Uncheck:
       </section>
     </main>
 
-    <dialog id="terminalDialog" class="terminal-dialog">
-      <div class="terminal-card">
-        <div class="terminal-header">
-          <div>
-            <h2>Converting backup</h2>
-            <p id="terminalStatus">Starting...</p>
-          </div>
-
-          <div class="terminal-label" aria-hidden="true">
-            Live log
-          </div>
-        </div>
-
-        <pre id="terminalOutput" class="terminal-output">Waiting for conversion to start...</pre>
-
-        <div id="downloadArea" class="download-area" hidden>
-          <a id="downloadLink" class="button" href="#">Download .tachibk</a>
-        </div>
-
-        <p class="small-note">
-          Keep this tab open until the download button appears.
-        </p>
-      </div>
-    </dialog>
-
     <script>
       const form = document.getElementById("convertForm");
       const button = document.getElementById("convertButton");
-      const dialog = document.getElementById("terminalDialog");
-      const terminalStatus = document.getElementById("terminalStatus");
-      const terminalOutput = document.getElementById("terminalOutput");
-      const downloadArea = document.getElementById("downloadArea");
-      const downloadLink = document.getElementById("downloadLink");
+
+      const statusMessage = document.getElementById("statusMessage");
+      const statusBadge = document.getElementById("statusBadge");
+      const summaryOutput = document.getElementById("summaryOutput");
+
+      const resultCard = document.getElementById("resultCard");
+      const resultMessage = document.getElementById("resultMessage");
+      const backupDownloadLink = document.getElementById("backupDownloadLink");
+      const duplicateReportArea = document.getElementById("duplicateReportArea");
+      const duplicateReportLink = document.getElementById("duplicateReportLink");
 
       let pollTimer = null;
+
+      let latestSummary = {
+        progressText: "Waiting",
+        mangaIdentified: 0,
+        mangaIncluded: 0,
+        mangaDuplicates: 0,
+        mangadexSourceCount: 0,
+        readingCount: 0,
+        followingCount: 0,
+        onHoldCount: 0,
+      };
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
+        resetResults();
+
         button.disabled = true;
         button.textContent = "Converting...";
 
-        terminalStatus.textContent = "Uploading file...";
-        terminalOutput.textContent = "Uploading file to local converter...\n";
-        downloadArea.hidden = true;
+        statusBadge.textContent = "Uploading";
+        statusBadge.className = "status-badge status-running";
+        statusMessage.textContent = "Uploading file to local converter.";
 
-        openDialog();
+        latestSummary.progressText = "Uploading";
+        updateSummaryOutput(latestSummary);
 
         try {
           const formData = new FormData(form);
@@ -132,11 +172,16 @@ Uncheck:
             throw new Error(payload.error || "Could not start conversion.");
           }
 
-          terminalStatus.textContent = "Conversion running...";
+          statusBadge.textContent = "Running";
+          statusBadge.className = "status-badge status-running";
+          statusMessage.textContent = "Conversion is running.";
+
           startPolling(payload.jobId);
         } catch (error) {
-          terminalStatus.textContent = "Error";
-          terminalOutput.textContent += "\nError: " + error.message + "\n";
+          statusBadge.textContent = "Error";
+          statusBadge.className = "status-badge status-failed";
+          statusMessage.textContent = "Error: " + error.message;
+
           button.disabled = false;
           button.textContent = "Convert to .tachibk";
         }
@@ -154,43 +199,67 @@ Uncheck:
               throw new Error(status.error || "Could not read job status.");
             }
 
-            terminalOutput.textContent = status.logs.join("\n");
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            latestSummary = {
+              progressText: status.progressText || "Starting",
+              mangaIdentified: status.mangaIdentified || 0,
+              mangaIncluded: status.mangaIncluded || 0,
+              mangaDuplicates: status.mangaDuplicates || 0,
+              mangadexSourceCount: status.mangadexSourceCount || 0,
+              readingCount: status.readingCount || 0,
+              followingCount: status.followingCount || 0,
+              onHoldCount: status.onHoldCount || 0,
+            };
+
+            updateSummaryOutput(latestSummary);
 
             if (status.state === "running" || status.state === "queued") {
-              terminalStatus.textContent = "Conversion running...";
+              statusBadge.textContent = "Running";
+              statusBadge.className = "status-badge status-running";
+              statusMessage.textContent = "Conversion is running.";
             }
 
             if (status.state === "completed") {
               clearInterval(pollTimer);
 
-              terminalStatus.textContent = "Conversion complete";
+              statusBadge.textContent = "Complete";
+              statusBadge.className = "status-badge status-complete";
+              statusMessage.textContent = "Conversion complete. Your backup is ready.";
+
               button.disabled = false;
               button.textContent = "Convert another file";
 
-              downloadLink.href = status.downloadUrl;
-              downloadLink.textContent = `Download ${status.downloadName}`;
-              downloadArea.hidden = false;
+              resultCard.hidden = false;
+              resultMessage.textContent = "Your backup is ready.";
 
-              terminalOutput.textContent += "\n\nDownload ready.\n";
-              terminalOutput.scrollTop = terminalOutput.scrollHeight;
+              backupDownloadLink.href = status.backupDownloadUrl;
+              backupDownloadLink.textContent = `Download ${status.backupDownloadName}`;
+              backupDownloadLink.hidden = false;
+
+              if (status.duplicateReportUrl) {
+                duplicateReportLink.href = status.duplicateReportUrl;
+                duplicateReportLink.textContent = `Download ${status.duplicateReportDownloadName}`;
+                duplicateReportArea.hidden = false;
+              } else {
+                duplicateReportArea.hidden = true;
+              }
             }
 
             if (status.state === "failed") {
               clearInterval(pollTimer);
 
-              terminalStatus.textContent = "Conversion failed";
+              statusBadge.textContent = "Failed";
+              statusBadge.className = "status-badge status-failed";
+              statusMessage.textContent = "Conversion failed. Please try again.";
+
               button.disabled = false;
               button.textContent = "Try again";
-
-              terminalOutput.textContent += "\n\nConversion failed. Review the log above.\n";
-              terminalOutput.scrollTop = terminalOutput.scrollHeight;
             }
           } catch (error) {
             clearInterval(pollTimer);
 
-            terminalStatus.textContent = "Error";
-            terminalOutput.textContent += "\nError: " + error.message + "\n";
+            statusBadge.textContent = "Error";
+            statusBadge.className = "status-badge status-failed";
+            statusMessage.textContent = "Error: " + error.message;
 
             button.disabled = false;
             button.textContent = "Try again";
@@ -198,12 +267,48 @@ Uncheck:
         }, 1000);
       }
 
-      function openDialog() {
-        if (typeof dialog.showModal === "function") {
-          dialog.showModal();
-        } else {
-          dialog.setAttribute("open", "open");
-        }
+      function updateSummaryOutput(summary) {
+        summaryOutput.textContent =
+`Manga Backup Status Summary
+===========================
+Progress: ${summary.progressText}
+Total Manga Identified: ${summary.mangaIdentified}
+Manga Included In Backup: ${summary.mangaIncluded}
+Manga Duplicates: ${summary.mangaDuplicates}
+
+Sources:
+  z13mangadex: ${summary.mangadexSourceCount}
+
+Manga Storm Categories:
+  Reading: ${summary.readingCount}
+  Following: ${summary.followingCount}
+  On Hold: ${summary.onHoldCount}`;
+      }
+
+      function resetResults() {
+        clearInterval(pollTimer);
+
+        resultCard.hidden = true;
+        resultMessage.textContent = "Conversion is running.";
+
+        backupDownloadLink.hidden = true;
+        backupDownloadLink.href = "#";
+
+        duplicateReportArea.hidden = true;
+        duplicateReportLink.href = "#";
+
+        latestSummary = {
+          progressText: "Starting",
+          mangaIdentified: 0,
+          mangaIncluded: 0,
+          mangaDuplicates: 0,
+          mangadexSourceCount: 0,
+          readingCount: 0,
+          followingCount: 0,
+          onHoldCount: 0,
+        };
+
+        updateSummaryOutput(latestSummary);
       }
     </script>
   </body>
