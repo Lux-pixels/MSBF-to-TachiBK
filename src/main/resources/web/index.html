@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MSBF-to-TachiBK</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+
+  <body>
+    <main>
+      <section class="hero">
+        <h1>MSBF-to-TachiBK</h1>
+        <p>
+          Convert Manga Storm <code>.msbf</code> favorites exports into
+          Komikku / Tachiyomi-style <code>.tachibk</code> backups.
+        </p>
+        <p class="badge">Local-only converter · Nothing is uploaded to the internet</p>
+      </section>
+
+      <section class="card">
+        <h2>Upload favorites.msbf</h2>
+
+        <form id="convertForm" enctype="multipart/form-data">
+          <label class="file">
+            <span>Choose Manga Storm .msbf file</span>
+            <input id="msbfFile" type="file" name="msbfFile" accept=".msbf" required>
+          </label>
+
+          <div class="option-grid">
+            <label class="checkbox">
+              <input type="checkbox" name="metadata">
+              <span>
+                <strong>Fetch MangaDex metadata</strong>
+                <small>Optional. Slower for large backups. Leave unchecked for the fastest conversion.</small>
+              </span>
+            </label>
+
+            <label class="checkbox">
+              <input type="checkbox" name="removeDuplicates">
+              <span>
+                <strong>Remove duplicate MangaDex entries</strong>
+                <small>Safe default is off. Leave unchecked to keep all entries.</small>
+              </span>
+            </label>
+          </div>
+
+          <button id="convertButton" type="submit">Convert to .tachibk</button>
+        </form>
+      </section>
+
+      <section class="notes">
+        <h2>Restore reminder</h2>
+        <p>In Komikku, restore with:</p>
+
+        <pre>Check:
+- Manga
+- Categories
+
+Uncheck:
+- App Settings
+- Saved Searches
+- Source Settings
+- Extension Repos</pre>
+
+        <p>
+          Manually disable delegated sources in Komikku if MangaDex entries open as
+          WebView / website 404 pages.
+        </p>
+      </section>
+    </main>
+
+    <dialog id="terminalDialog" class="terminal-dialog">
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <div>
+            <h2>Converting backup</h2>
+            <p id="terminalStatus">Starting...</p>
+          </div>
+
+          <div class="terminal-label" aria-hidden="true">
+            Live log
+          </div>
+        </div>
+
+        <pre id="terminalOutput" class="terminal-output">Waiting for conversion to start...</pre>
+
+        <div id="downloadArea" class="download-area" hidden>
+          <a id="downloadLink" class="button" href="#">Download .tachibk</a>
+        </div>
+
+        <p class="small-note">
+          Keep this tab open until the download button appears.
+        </p>
+      </div>
+    </dialog>
+
+    <script>
+      const form = document.getElementById("convertForm");
+      const button = document.getElementById("convertButton");
+      const dialog = document.getElementById("terminalDialog");
+      const terminalStatus = document.getElementById("terminalStatus");
+      const terminalOutput = document.getElementById("terminalOutput");
+      const downloadArea = document.getElementById("downloadArea");
+      const downloadLink = document.getElementById("downloadLink");
+
+      let pollTimer = null;
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        button.disabled = true;
+        button.textContent = "Converting...";
+
+        terminalStatus.textContent = "Uploading file...";
+        terminalOutput.textContent = "Uploading file to local converter...\n";
+        downloadArea.hidden = true;
+
+        openDialog();
+
+        try {
+          const formData = new FormData(form);
+
+          const response = await fetch("/api/convert", {
+            method: "POST",
+            body: formData,
+          });
+
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload.error || "Could not start conversion.");
+          }
+
+          terminalStatus.textContent = "Conversion running...";
+          startPolling(payload.jobId);
+        } catch (error) {
+          terminalStatus.textContent = "Error";
+          terminalOutput.textContent += "\nError: " + error.message + "\n";
+          button.disabled = false;
+          button.textContent = "Convert to .tachibk";
+        }
+      });
+
+      function startPolling(jobId) {
+        clearInterval(pollTimer);
+
+        pollTimer = setInterval(async () => {
+          try {
+            const response = await fetch(`/api/status/${jobId}`);
+            const status = await response.json();
+
+            if (!response.ok) {
+              throw new Error(status.error || "Could not read job status.");
+            }
+
+            terminalOutput.textContent = status.logs.join("\n");
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+            if (status.state === "running" || status.state === "queued") {
+              terminalStatus.textContent = "Conversion running...";
+            }
+
+            if (status.state === "completed") {
+              clearInterval(pollTimer);
+
+              terminalStatus.textContent = "Conversion complete";
+              button.disabled = false;
+              button.textContent = "Convert another file";
+
+              downloadLink.href = status.downloadUrl;
+              downloadLink.textContent = `Download ${status.downloadName}`;
+              downloadArea.hidden = false;
+
+              terminalOutput.textContent += "\n\nDownload ready.\n";
+              terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            }
+
+            if (status.state === "failed") {
+              clearInterval(pollTimer);
+
+              terminalStatus.textContent = "Conversion failed";
+              button.disabled = false;
+              button.textContent = "Try again";
+
+              terminalOutput.textContent += "\n\nConversion failed. Review the log above.\n";
+              terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            }
+          } catch (error) {
+            clearInterval(pollTimer);
+
+            terminalStatus.textContent = "Error";
+            terminalOutput.textContent += "\nError: " + error.message + "\n";
+
+            button.disabled = false;
+            button.textContent = "Try again";
+          }
+        }, 1000);
+      }
+
+      function openDialog() {
+        if (typeof dialog.showModal === "function") {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute("open", "open");
+        }
+      }
+    </script>
+  </body>
+</html>

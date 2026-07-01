@@ -166,17 +166,20 @@ object CliParser {
             Convert Manga Storm .msbf favorites exports into Komikku/Tachiyomi .tachibk backups.
 
             Usage:
+              ./gradlew run --args="serve"
               ./gradlew run --args="convert <input.msbf> --output <output.tachibk>"
               ./gradlew run --args="<input.msbf> <output.tachibk>"
 
             Examples:
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/MSBF-to-TachiBK-v0.10test.tachibk"
-              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.10/MSBF-to-TachiBK-v0.10test.tachibk"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/quick-test.tachibk --no-metadata"
+              ./gradlew run --args="serve"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.11/MSBF-to-TachiBK-v0.11test.tachibk"
+              ./gradlew run --args="samples/testfavorites.msbf testdata/v0.11/MSBF-to-TachiBK-v0.11test.tachibk"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.11/quick-test.tachibk --no-metadata"
               ./gradlew run --args="convert samples/testfavorites.msbf --report-duplicates-only"
-              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.10/deduped.tachibk --remove-duplicates"
+              ./gradlew run --args="convert samples/testfavorites.msbf --output testdata/v0.11/deduped.tachibk --remove-duplicates"
 
             Options:
+              serve                    Start local browser upload/download converter
               --output, -o <file>       Output .tachibk file path
               --metadata                Fetch MangaDex metadata. This is the default.
               --no-metadata             Skip MangaDex metadata for quick tests
@@ -188,6 +191,7 @@ object CliParser {
             Notes:
               Metadata is fetched by default.
               Duplicates are kept by default.
+              The browser converter runs locally at http://localhost:8080.
               Output folders are created automatically when possible.
         """.trimIndent()
     }

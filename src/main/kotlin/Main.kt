@@ -2,22 +2,33 @@ import app.ConversionRequest
 import app.ConverterService
 import cli.CliParser
 import java.io.File
+import web.WebServer
 
 /**
  * CLI entry point for MSBF-to-TachiBK.
  *
- * Main.kt should stay small.
- *
- * It is responsible for:
- * - Parsing CLI arguments
+ * Main.kt is responsible for:
+ * - Starting the local browser converter with the serve command
+ * - Parsing CLI conversion arguments
  * - Showing help/version output
  * - Creating a ConversionRequest
  * - Calling ConverterService
- *
- * The actual conversion logic lives in ConverterService so it can also be used
- * by the future local browser upload/download converter.
  */
 fun main(args: Array<String>) {
+    /**
+     * Local browser upload/download mode.
+     *
+     * Run:
+     * ./gradlew run --args="serve"
+     *
+     * Then open:
+     * http://localhost:8080
+     */
+    if (args.firstOrNull()?.lowercase() == "serve") {
+        WebServer.start(port = 8080)
+        return
+    }
+
     val options = CliParser.parse(args)
 
     if (options.showHelp) {

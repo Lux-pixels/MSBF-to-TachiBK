@@ -10,11 +10,11 @@ object Constants {
     const val APP_NAME = "MSBF-to-TachiBK"
 
     /**
-     * Commit 12 development version.
+     * Commit 13 development version.
      *
-     * v0.10.0 = shared converter service refactor.
+     * v0.11.0 = local browser upload/download converter.
      */
-    const val VERSION = "0.10.0"
+    const val VERSION = "0.11.0"
 
     /**
      * Manga Storm source key for MangaDex.
