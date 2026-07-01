@@ -511,6 +511,73 @@ build/distributions/
 
 Post-V1 development may focus on:
 
+- Patch fixes after first public download testing
+- Better Windows first-run experience
+- Better release packaging
+- Metadata improvements
+- Duplicate management improvements
+- Desktop drag-and-drop app investigation
+- Native Windows installer
+- Native macOS app bundle
+- Native Linux package
+- No-Java standalone executable
+- More Manga Storm sources
+- More backup data if Manga Storm provides enough information
+
+---
+
+## Future Restore Backup Setting Considerations
+
+V1 intentionally recommends restoring only:
+
+```text
+Manga
+Categories
+```
+
+And leaving these unchecked:
+
+```text
+App Settings
+Extension Repos
+Source Settings
+Saved Searches
+Feeds
+```
+
+These backup sections may be considered after V1, but they need careful testing because they can change app behavior, source behavior, or restore unwanted configuration data.
+
+Possible future restore options:
+
+```text
+--include-app-settings
+--include-extension-repos
+--include-source-settings
+--include-saved-searches
+--include-feeds
+```
+
+Recommended future behavior:
+
+```text
+Keep all advanced restore sections disabled by default.
+Only include them when the user explicitly enables them.
+Warn users before including settings that may affect Komikku behavior.
+Test each section independently before recommending it.
+```
+
+Why this matters:
+
+- **App Settings** may change Komikku-wide behavior.
+- **Extension Repos** may alter extension repository configuration.
+- **Source Settings** may affect MangaDex or other source behavior.
+- **Saved Searches** may restore search data that is not needed for basic library migration.
+- **Feeds** may restore feed data that is not needed for basic favorites migration.
+
+The project goal is to keep default restores safe and predictable.
+
+Post-V1 development may focus on:
+
 - Native Windows installer
 - Native macOS app bundle
 - Native Linux package
