@@ -75,3 +75,13 @@ Uncheck:
 - Extension Repos
 
 If MangaDex entries open as a WebView / website 404 page, manually disable delegated sources in Komikku.
+
+Included Test File
+------------------
+This release includes a small sample Manga Storm .msbf file for testing:
+
+samples/testfavorites.msbf
+
+You can use it to confirm the converter opens, runs, and creates a .tachibk file before using your own Manga Storm export.
+
+This sample file is only for testing. Use your own Manga Storm favorites export for your real library migration.
